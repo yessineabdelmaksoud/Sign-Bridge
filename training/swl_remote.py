@@ -6,6 +6,7 @@ one ranged request instead of downloading the whole file.
 """
 from __future__ import annotations
 
+import http.client
 import io
 import struct
 import threading
@@ -66,7 +67,7 @@ class HttpRangeReader:
                     time.sleep(float(error.headers.get("Retry-After", 60)))
                 elif error.code in (401, 403):  # the redirect target expired
                     self._resolve()
-            except OSError as error:
+            except (OSError, http.client.HTTPException) as error:  # dropped or cut-off transfer
                 last_error = error
             time.sleep(min(2 ** attempt, 30))
         raise IOError(f"could not read bytes {start}-{end} of {self.url}: {last_error}")
