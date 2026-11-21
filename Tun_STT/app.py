@@ -114,13 +114,14 @@ async def health():
 @app.post("/transcribe")
 async def transcribe(
     file: UploadFile = File(...),
-    filter_bad_words: bool = True,
+    filter_bad_words: bool = False,
 ):
     """
     Transcribe an audio file (WAV, MP3, FLAC, etc.) to Tunisian Arabic text.
 
     - **file**: Audio file to transcribe.
-    - **filter_bad_words**: If true, censor profanity in the output (default: true).
+    - **filter_bad_words**: If true, censor profanity in the output (default: false; the word list
+      is built from whole abusive sentences, so it also censors ordinary words).
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided.")

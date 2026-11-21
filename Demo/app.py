@@ -1,9 +1,10 @@
+import os
 import streamlit as st
 from elevenlabs.client import ElevenLabs
 from ui_theme import apply_tunisign_theme, render_primary_sidebar
 
-# Keep key in app logic (not shown in UI).
-API_KEY = "sk_dc270b6a089f34d50834bf3e207addaee1082463f7bd4a84"
+# The key comes from the environment; never commit it.
+API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 VOICE_ID = "InB4o9iYj3MQ4HtGs2KV"
 
 DEFAULT_TEXT = "أهلاً وسهلاً! كيفاش حالك اليوم؟ إن شاء الله لباس."

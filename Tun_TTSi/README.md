@@ -1,5 +1,8 @@
 # 🤟 Tunisian Text to Sign (TTSi) - Neon Avatar
 
+> [!NOTE]
+> The code and sign images for this module live in [`Demo/TextToSign/`](../Demo/TextToSign/). This folder keeps the module's documentation only, so the image data exists once in the repository.
+
 The TTSi module transforms written Tunisian text into a clear, animated Sign Language representation using a custom-built Skeleton Avatar.
 
 ## 🏗️ Technical Architecture

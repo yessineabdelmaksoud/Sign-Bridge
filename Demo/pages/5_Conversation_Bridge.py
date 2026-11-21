@@ -49,7 +49,7 @@ except Exception as whisper_import_error:
     Model = None
     WHISPER_IMPORT_ERROR = whisper_import_error
 
-API_KEY = "sk_dc270b6a089f34d50834bf3e207addaee1082463f7bd4a84"
+API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 VOICE_ID = "InB4o9iYj3MQ4HtGs2KV"
 
 ASSET_DIR = Path(__file__).resolve().parents[1] / "signtotext"
