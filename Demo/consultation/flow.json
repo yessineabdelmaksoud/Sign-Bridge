@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "note": "Question wording, Arabic labels and urgency rules are pending review by a clinician and a native speaker.",
+  "questions": [
+    {
+      "id": "consent",
+      "kind": "yesno",
+      "text": {
+        "fr": "La caméra lit seulement la position des mains. Aucune vidéo n'est enregistrée. D'accord ?",
+        "ar": "الكاميرا تقرأ موضع اليدين فقط. لا يتم تسجيل أي فيديو. موافق؟"
+      },
+      "short": {"fr": "Consentement", "ar": "الموافقة"}
+    },
+    {
+      "id": "reason",
+      "kind": "sign",
+      "text": {"fr": "Pourquoi venez-vous aujourd'hui ?", "ar": "علاش جيت اليوم؟"},
+      "short": {"fr": "Motif", "ar": "السبب"},
+      "options": ["ENFERMO", "CITA", "FARMACIA", "URGENTE"]
+    },
+    {
+      "id": "symptom",
+      "kind": "sign",
+      "text": {"fr": "Quel est le problème principal ?", "ar": "شنوة المشكل الرئيسي؟"},
+      "short": {"fr": "Symptôme principal", "ar": "العرض الرئيسي"},
+      "options": ["DOLOR", "DOLOR-DE-CABEZA", "FIEBRE2", "TOSER", "MAREO", "VOMITAR", "DIARREA",
+                  "RESPIRAR", "CANSADO2", "HERIDA", "ALERGIA2", "GRIPE", "INSOMNIO", "ANSIEDAD"]
+    },
+    {
+      "id": "location",
+      "kind": "bodymap",
+      "text": {"fr": "Où ?", "ar": "وين؟"},
+      "short": {"fr": "Localisation", "ar": "المكان"},
+      "options": ["HEAD", "THROAT", "CHEST", "ABDOMEN", "BACK", "ARM_L", "ARM_R", "LEG_L", "LEG_R"],
+      "show_if": {"symptom": ["DOLOR", "HERIDA"]}
+    },
+    {
+      "id": "intensity",
+      "kind": "scale",
+      "text": {"fr": "Quelle intensité ?", "ar": "قداش قوية؟"},
+      "short": {"fr": "Intensité", "ar": "الشدة"},
+      "show_if": {"symptom": ["DOLOR", "DOLOR-DE-CABEZA"]}
+    },
+    {
+      "id": "since",
+      "kind": "choice",
+      "text": {"fr": "Depuis quand ?", "ar": "من وقتاش؟"},
+      "short": {"fr": "Depuis", "ar": "منذ"},
+      "options": ["TODAY", "YESTERDAY", "DAYS_2_3", "WEEK", "LONGER",
+                  "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+    },
+    {
+      "id": "conditions",
+      "kind": "sign_multi",
+      "text": {"fr": "Avez-vous une maladie connue ?", "ar": "عندك مرض معروف؟"},
+      "short": {"fr": "Antécédents", "ar": "أمراض معروفة"},
+      "options": ["DIABETES", "ASMA", "CORAZON", "EMBARAZO"]
+    },
+    {
+      "id": "allergy_medicine",
+      "kind": "yesno",
+      "text": {"fr": "Allergie à un médicament ?", "ar": "عندك حساسية من دواء؟"},
+      "short": {"fr": "Allergie médicamenteuse", "ar": "حساسية من دواء"}
+    },
+    {
+      "id": "taking_medicine",
+      "kind": "yesno",
+      "text": {"fr": "Prenez-vous un médicament en ce moment ?", "ar": "تاخذ في دواء توا؟"},
+      "short": {"fr": "Traitement en cours", "ar": "دواء حالي"}
+    },
+    {
+      "id": "fever",
+      "kind": "yesno",
+      "text": {"fr": "Avez-vous de la fièvre ?", "ar": "عندك سخانة؟"},
+      "short": {"fr": "Fièvre", "ar": "سخانة"},
+      "hide_if": {"symptom": ["FIEBRE2"]}
+    }
+  ],
+  "labels": {
+    "YES": {"fr": "Oui", "ar": "نعم", "icon": "✅"},
+    "NO": {"fr": "Non", "ar": "لا", "icon": "❌"},
+    "NONE": {"fr": "Aucun", "ar": "لا شيء", "icon": "🚫"},
+
+    "ENFERMO": {"fr": "Malade", "ar": "مريض", "icon": "🤒"},
+    "CITA": {"fr": "Rendez-vous", "ar": "موعد", "icon": "📅"},
+    "FARMACIA": {"fr": "Médicament", "ar": "دواء", "icon": "💊"},
+    "URGENTE": {"fr": "Urgent", "ar": "حالة مستعجلة", "icon": "🚨"},
+
+    "DOLOR": {"fr": "Douleur", "ar": "وجيعة", "icon": "😣"},
+    "DOLOR-DE-CABEZA": {"fr": "Mal de tête", "ar": "وجيعة راس", "icon": "🤕"},
+    "FIEBRE2": {"fr": "Fièvre", "ar": "سخانة", "icon": "🌡️"},
+    "TOSER": {"fr": "Toux", "ar": "كحة", "icon": "😷"},
+    "MAREO": {"fr": "Vertige", "ar": "دوخة", "icon": "😵"},
+    "VOMITAR": {"fr": "Vomissements", "ar": "تقيؤ", "icon": "🤮"},
+    "DIARREA": {"fr": "Diarrhée", "ar": "إسهال", "icon": "🚽"},
+    "RESPIRAR": {"fr": "Difficulté à respirer", "ar": "ضيق في التنفس", "icon": "🫁"},
+    "CANSADO2": {"fr": "Fatigue", "ar": "تعب", "icon": "😴"},
+    "HERIDA": {"fr": "Blessure", "ar": "جرح", "icon": "🩹"},
+    "ALERGIA2": {"fr": "Allergie", "ar": "حساسية", "icon": "🤧"},
+    "GRIPE": {"fr": "Grippe", "ar": "نزلة برد", "icon": "🦠"},
+    "INSOMNIO": {"fr": "Insomnie", "ar": "قلة نوم", "icon": "🌙"},
+    "ANSIEDAD": {"fr": "Anxiété", "ar": "قلق", "icon": "😰"},
+
+    "DIABETES": {"fr": "Diabète", "ar": "سكري", "icon": "🩸"},
+    "ASMA": {"fr": "Asthme", "ar": "ربو", "icon": "🌬️"},
+    "CORAZON": {"fr": "Maladie du cœur", "ar": "مرض القلب", "icon": "❤️"},
+    "EMBARAZO": {"fr": "Grossesse", "ar": "حمل", "icon": "🤰"},
+
+    "HEAD": {"fr": "Tête", "ar": "الراس", "icon": "🙂"},
+    "THROAT": {"fr": "Gorge", "ar": "الحلق", "icon": "🗣️"},
+    "CHEST": {"fr": "Poitrine", "ar": "الصدر", "icon": "🫀"},
+    "ABDOMEN": {"fr": "Ventre", "ar": "البطن", "icon": "⭕"},
+    "BACK": {"fr": "Dos", "ar": "الظهر", "icon": "🔙"},
+    "ARM_L": {"fr": "Bras gauche", "ar": "اليد اليسرى", "icon": "💪"},
+    "ARM_R": {"fr": "Bras droit", "ar": "اليد اليمنى", "icon": "💪"},
+    "LEG_L": {"fr": "Jambe gauche", "ar": "الساق اليسرى", "icon": "🦵"},
+    "LEG_R": {"fr": "Jambe droite", "ar": "الساق اليمنى", "icon": "🦵"},
+
+    "TODAY": {"fr": "Aujourd'hui", "ar": "اليوم", "icon": "📆"},
+    "YESTERDAY": {"fr": "Hier", "ar": "البارح", "icon": "📆"},
+    "DAYS_2_3": {"fr": "2–3 jours", "ar": "2-3 أيام", "icon": "📆"},
+    "WEEK": {"fr": "Une semaine", "ar": "جمعة", "icon": "📆"},
+    "LONGER": {"fr": "Plus longtemps", "ar": "أكثر", "icon": "📆"},
+    "MON": {"fr": "Lundi", "ar": "الاثنين", "icon": "📆"},
+    "TUE": {"fr": "Mardi", "ar": "الثلاثاء", "icon": "📆"},
+    "WED": {"fr": "Mercredi", "ar": "الأربعاء", "icon": "📆"},
+    "THU": {"fr": "Jeudi", "ar": "الخميس", "icon": "📆"},
+    "FRI": {"fr": "Vendredi", "ar": "الجمعة", "icon": "📆"},
+    "SAT": {"fr": "Samedi", "ar": "السبت", "icon": "📆"},
+    "SUN": {"fr": "Dimanche", "ar": "الأحد", "icon": "📆"},
+
+    "TAKE_MEDICINE": {"fr": "Prenez ce médicament", "ar": "خوذ هذا الدواء", "icon": "💊"},
+    "TWICE_A_DAY": {"fr": "2 fois par jour", "ar": "مرتين في النهار", "icon": "🕑"},
+    "COME_BACK_3_DAYS": {"fr": "Revenez dans 3 jours", "ar": "ارجع بعد 3 أيام", "icon": "📅"},
+    "BLOOD_TEST": {"fr": "Analyse de sang", "ar": "تحليل دم", "icon": "🩸"},
+    "GO_HOSPITAL_NOW": {"fr": "Allez à l'hôpital maintenant", "ar": "امشي للسبيطار توا", "icon": "🏥"},
+    "WAIT_HERE": {"fr": "Attendez ici", "ar": "استنى هنا", "icon": "⏳"}
+  },
+  "rules": [
+    {
+      "id": "breathing",
+      "when": {"symptom": ["RESPIRAR"]},
+      "min": {},
+      "fr": "Difficulté respiratoire : à voir en priorité",
+      "ar": "صعوبة في التنفس: أولوية",
+      "clinical_review": "pending"
+    },
+    {
+      "id": "chest_pain",
+      "when": {"symptom": ["DOLOR"], "location": ["CHEST"]},
+      "min": {},
+      "fr": "Douleur thoracique : à voir en priorité",
+      "ar": "وجيعة في الصدر: أولوية",
+      "clinical_review": "pending"
+    },
+    {
+      "id": "severe_pain",
+      "when": {},
+      "min": {"intensity": 8},
+      "fr": "Douleur intense (≥ 8/10)",
+      "ar": "وجيعة قوية (8/10 أو أكثر)",
+      "clinical_review": "pending"
+    },
+    {
+      "id": "patient_urgent",
+      "when": {"reason": ["URGENTE"]},
+      "min": {},
+      "fr": "Le patient signale une urgence",
+      "ar": "المريض يقول الحالة مستعجلة",
+      "clinical_review": "pending"
+    }
+  ],
+  "instructions": ["TAKE_MEDICINE", "TWICE_A_DAY", "COME_BACK_3_DAYS", "BLOOD_TEST", "GO_HOSPITAL_NOW", "WAIT_HERE"]
+}
