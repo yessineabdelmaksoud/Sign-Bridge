@@ -23,6 +23,8 @@ _EXTRA_GUESS = 256
 class HttpRangeReader:
     """Byte ranges of one URL, with polite pacing and retries."""
 
+    MAX_STALLS = 6
+
     def __init__(self, url: str, min_interval: float = 0.25, timeout: float = 120.0):
         self.url = url
         self.timeout = timeout
@@ -48,18 +50,29 @@ class HttpRangeReader:
             time.sleep(wait)
 
     def read_range(self, start: int, end: int) -> bytes:
-        """Bytes [start, end) of the file."""
+        """Bytes [start, end) of the file.
+
+        A transfer that breaks off keeps what arrived and asks only for the rest,
+        so a connection that always drops late still finishes. It gives up after
+        MAX_STALLS attempts in a row that deliver nothing.
+        """
+        received = bytearray()
+        stalls = 0
         last_error: Exception | None = None
-        for attempt in range(6):
+        while len(received) < end - start:
+            if stalls >= self.MAX_STALLS:
+                raise IOError(f"could not read bytes {start}-{end} of {self.url}: {last_error}")
             self._wait_turn()
+            position = start + len(received)
             request = urllib.request.Request(
-                self._final, headers={"Range": f"bytes={start}-{end - 1}", "User-Agent": "curl"})
+                self._final, headers={"Range": f"bytes={position}-{end - 1}", "User-Agent": "curl"})
+            before = len(received)
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                    data = response.read()
-                if len(data) == end - start:
-                    return data
-                last_error = IOError(f"short read: {len(data)} of {end - start} bytes")
+                    received += response.read()
+            except http.client.IncompleteRead as error:  # cut off: keep the part that arrived
+                received += error.partial
+                last_error = error
             except urllib.error.HTTPError as error:
                 last_error = error
                 if error.code == 429:  # asked to slow down
@@ -67,10 +80,14 @@ class HttpRangeReader:
                     time.sleep(float(error.headers.get("Retry-After", 60)))
                 elif error.code in (401, 403):  # the redirect target expired
                     self._resolve()
-            except (OSError, http.client.HTTPException) as error:  # dropped or cut-off transfer
+            except (OSError, http.client.HTTPException) as error:
                 last_error = error
-            time.sleep(min(2 ** attempt, 30))
-        raise IOError(f"could not read bytes {start}-{end} of {self.url}: {last_error}")
+            if len(received) > before:
+                stalls = 0
+            else:
+                stalls += 1
+                time.sleep(min(2 ** stalls, 30))
+        return bytes(received[:end - start])
 
 
 class _ReaderFile(io.RawIOBase):

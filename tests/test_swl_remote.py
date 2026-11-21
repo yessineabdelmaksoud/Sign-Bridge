@@ -28,8 +28,12 @@ class FakeResponse:
         return self._body
 
 
-def install(monkeypatch, failures):
-    """Serve DATA by range; the first `failures` body reads break off mid-transfer."""
+def install(monkeypatch, failures, partial=10, cap=None):
+    """Serve DATA by range.
+
+    The first `failures` body reads break off after `partial` bytes. With `cap`,
+    every response is cut to at most `cap` bytes, however often it is asked.
+    """
     state = {"left": failures, "gets": 0}
 
     def fake_urlopen(request, timeout=None):
@@ -38,9 +42,11 @@ def install(monkeypatch, failures):
         state["gets"] += 1
         start, end = request.get_header("Range").removeprefix("bytes=").split("-")
         body = DATA[int(start):int(end) + 1]
+        if cap is not None and len(body) > cap:
+            return FakeResponse(body, fail=http.client.IncompleteRead(body[:cap], len(body) - cap))
         if state["left"] > 0:
             state["left"] -= 1
-            return FakeResponse(body, fail=http.client.IncompleteRead(body[:10], len(body) - 10))
+            return FakeResponse(body, fail=http.client.IncompleteRead(body[:partial], len(body) - partial))
         return FakeResponse(body)
 
     monkeypatch.setattr(swl_remote.urllib.request, "urlopen", fake_urlopen)
@@ -55,8 +61,15 @@ def test_a_transfer_that_breaks_off_is_retried(monkeypatch):
     assert state["gets"] == 3
 
 
-def test_gives_up_with_a_clear_error_after_repeated_failures(monkeypatch):
-    install(monkeypatch, failures=99)
+def test_a_server_that_always_cuts_responses_short_is_read_in_pieces(monkeypatch):
+    state = install(monkeypatch, failures=0, cap=300)
+    reader = HttpRangeReader("https://zenodo.example/file", min_interval=0)
+    assert reader.read_range(0, 5000) == DATA[:5000]
+    assert state["gets"] == 17  # 16 cut-off pieces of 300 bytes, then the last 200
+
+
+def test_gives_up_with_a_clear_error_when_no_bytes_arrive(monkeypatch):
+    install(monkeypatch, failures=99, partial=0)
     reader = HttpRangeReader("https://zenodo.example/file", min_interval=0)
     with pytest.raises(IOError, match="could not read bytes 0-50"):
         reader.read_range(0, 50)
