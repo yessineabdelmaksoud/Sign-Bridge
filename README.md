@@ -35,6 +35,8 @@ To let the doctor join from another device on the same network, start the server
 
 **The signs page.** http://localhost:8520/signs.html shows every sign as a stick figure you can play, says whether the camera recognises it, and lists the doctor's words that show it.
 
+**Diagnosing a sign.** Add `&debug=1` to the patient screen's address (`patient.html?room=demo&debug=1`): each attempt is listed with what was proposed, the next guesses with their percentages, and how many frames had a hand. If the shoulders are out of view, the screen asks the patient to step back.
+
 **Demonstration without a signer.** The patient screen has a "Démonstration sans signeur" control: it plays a reference recording of a medical sign through exactly the same recognition path, without showing the person in it, so a presenter can build and send a sentence.
 
 ## How a conversation works
@@ -76,7 +78,9 @@ One model recognises both sets: 22 medical signs, 27 Tunisian words and an "othe
 | Right sign in the top 3 | 92.9% | 56 |
 | As the patient screen works (every proposed sign allowed), replaying held-out recordings frame by frame through the capture | 76% right first time, 15% "sign again", 7% wrong | 125 |
 
-A wrong proposal is not sent: the patient sees the word, with the next two guesses offered as corrections, and can remove it. An earlier model trained on the medical signs alone scored 80.7% ± 1.3 over 5-fold cross-validation.
+When the model hesitates between a few signs (Toux or Asthme, for example), the patient is offered its three best guesses to tap instead of only "sign again": on the same held-out recordings, 105 of 125 (84%) then end up as the right word. A wrong proposal is not sent: the patient sees the word, with the next two guesses offered as corrections, and can remove it.
+
+**Hands resting in view.** In the training recordings a hand is seen only when raised (99.8% of sightings are less than 1.5 shoulder widths below the shoulders). At a desk, resting hands stay visible; with them left in, the held-out recordings dropped to 9% right. The patient screen therefore ignores a hand below that line, which restores 77% (`training/desk_check.py`). An earlier model trained on the medical signs alone scored 80.7% ± 1.3 over 5-fold cross-validation.
 
 **Tunisian everyday words** (each of the 7 signers held out in turn, so the model never saw the person it is scored on):
 
@@ -99,7 +103,8 @@ Metrics: `Demo/consultation/models/health_signs.json`.
 - **The medical signs are Spanish Sign Language.** They are the closest open dataset of health signs. Recording Tunisian medical signs with ATILS and deaf signers is the next step.
 - **The Tunisian data is small**: a few seconds of images per word from one to five signers, cropped at the chin. Several words cannot be recognised reliably yet and are only shown, not recognised.
 - **One sign at a time.** The patient lowers the hands between signs; continuous signing is not recognised.
-- **Lighting and framing matter.** Hand tracking degrades in poor light or when the hands leave the frame.
+- **Lighting and framing matter.** The camera must see the shoulders and the hands; hand tracking degrades in poor light.
+- **Similar signs get confused.** Toux and Asthme, or Malade and Allergie, move alike; the screen then offers both.
 - **It is not a diagnostic tool.** The sentence rules and the Arabic wording need review by a clinician and a native speaker.
 - **Not yet tested on a real webcam with a deaf signer.** Recognition was checked with recorded signs through the same path the camera uses.
 

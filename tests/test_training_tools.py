@@ -62,3 +62,27 @@ def test_featurise_of_no_clips_is_an_empty_batch():
     empty = featurise(np.empty((0, 32, 75, 3), np.float32))
     assert empty.shape == (0, 32, 184)
     assert top_k(np.empty((0, 5)), np.empty(0, dtype=int), 1) == 0.0
+
+
+def test_a_hand_resting_at_the_waist_is_dropped_and_a_raised_hand_kept():
+    from consultation.landmarks import LEFT, RIGHT
+    from tests.test_features import frame as make_frame
+    from training.tools import drop_resting_hands
+
+    f = make_frame(left=True, right=True)          # shoulders at y=0.4, 0.2 apart
+    f[LEFT, 1] = 0.5                                # wrist 0.5 widths below the shoulders: signing
+    f[RIGHT, 1] = 0.85                              # 2.25 widths below: resting on the desk
+    out = drop_resting_hands(f)
+    assert np.isfinite(out[LEFT]).all() and np.isnan(out[RIGHT]).all()
+    assert np.allclose(out[:33], f[:33]) and np.isfinite(f[RIGHT]).all(), "the input is not changed"
+
+
+def test_without_shoulders_hands_are_kept():
+    from consultation.landmarks import RIGHT
+    from tests.test_features import frame as make_frame
+    from training.tools import drop_resting_hands
+
+    f = make_frame(left=False, right=True)
+    f[11:13] = np.nan
+    f[RIGHT, 1] = 0.95
+    assert np.isfinite(drop_resting_hands(f)[RIGHT]).all()

@@ -60,3 +60,29 @@ export function pacedCapture() {
 
   return new PacedCapture();
 }
+
+/** Shoulder widths below the shoulders; 99.8% of signing hand sightings in training are above it. */
+export const REST_LINE = 1.5;
+
+/**
+ * A copy of the frame without the hands that hang below the signing space.
+ *
+ * In the training recordings a hand is seen only when raised: hands at rest are out
+ * of the picture. At a desk, resting hands stay visible; left in, they keep the
+ * capture recording and show the model positions it never learned (measured on
+ * held-out recordings: 9% right instead of 77%). Same rule as
+ * drop_resting_hands in training/tools.py.
+ */
+export function dropRestingHands(frame) {
+  const out = Float32Array.from(frame);
+  const [lx, ly, rx, ry] = [frame[33], frame[34], frame[36], frame[37]];   // pose points 11 and 12
+  if (![lx, ly, rx, ry].every(Number.isFinite)) return out;
+  const middleY = (ly + ry) / 2;
+  const width = Math.hypot(lx - rx, ly - ry);
+  if (width < 1e-6) return out;
+  for (const start of [33, 54]) {
+    const wristY = frame[start * 3 + 1];
+    if (Number.isFinite(wristY) && (wristY - middleY) / width > REST_LINE) out.fill(NaN, start * 3, (start + 21) * 3);
+  }
+  return out;
+}

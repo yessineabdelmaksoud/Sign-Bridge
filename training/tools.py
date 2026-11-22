@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from consultation.landmarks import mirror_clip
+from consultation.landmarks import LEFT, RIGHT, mirror_clip
 from consultation.recognizer import OTHER, narrow
 
 
@@ -78,3 +78,28 @@ def stratified_folds(y: np.ndarray, k: int, seed: int = 42) -> list[np.ndarray]:
         for position, index in enumerate(members):
             folds[position % k].append(int(index))
     return [np.array(sorted(fold)) for fold in folds]
+
+
+REST_LINE = 1.5   # shoulder widths below the shoulders; 99.8% of signing hand sightings are above it
+
+
+def drop_resting_hands(frame: np.ndarray, rest_line: float = REST_LINE) -> np.ndarray:
+    """A copy of the frame without the hands that hang below the signing space.
+
+    In the training recordings a hand is seen only when raised: hands at rest are out
+    of the picture. On a live camera at a desk, resting hands stay visible; treating
+    them as absent makes live frames look like the training ones.
+    """
+    out = np.array(frame, dtype=np.float32, copy=True)
+    shoulders = out[[11, 12], :2]
+    if not np.isfinite(shoulders).all():
+        return out
+    middle_y = shoulders[:, 1].mean()
+    width = float(np.linalg.norm(shoulders[0] - shoulders[1]))
+    if width < 1e-6:
+        return out
+    for hand in (LEFT, RIGHT):
+        wrist_y = out[hand.start, 1]
+        if np.isfinite(wrist_y) and (wrist_y - middle_y) / width > rest_line:
+            out[hand] = np.nan
+    return out

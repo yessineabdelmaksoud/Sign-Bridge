@@ -22,6 +22,8 @@ const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 
 const HISTORY_SIZE = 4;          // messages kept in the conversation strip
 const NOTICE_MS = 2000;          // "Signe non reconnu" and "Envoyé" stay this long
+const CHOICE_MS = 9000;          // "Vouliez-vous dire ?" choices stay this long
+const CHOICE_FLOOR = 0.25;       // below this best guess the model is too unsure to offer choices
 const NOTICE_LONG_MS = 6000;     // a failure to send stays longer
 const NEW_WORD_MS = 2500;        // the newest word keeps its green border this long
 const LIVE_WINDOW_MS = 15000;    // older events are history: shown, never played
@@ -58,6 +60,7 @@ const TEXT = {
   handNone: { ar: "ارفع يديك للإشارة", fr: "Levez les mains pour signer" },
   handSeen: { ar: "اليد ظاهرة", fr: "Main visible" },
   handRecording: { ar: "إشارة جارية", fr: "Signe en cours" },
+  handFar: { ar: "ارجع شوية باش تبان كتافك", fr: "Reculez un peu : on doit voir vos épaules" },
   emptySentence: { ar: "قم بإشارة، ثم أنزل يديك", fr: "Faites un signe, puis baissez les mains" },
   emptyPreview: { ar: "الجملة تظهر هنا", fr: "La phrase apparaîtra ici" },
   unknown: { ar: "لم يتم التعرف على الإشارة، أعدها", fr: "Signe non reconnu, recommencez" },
@@ -65,6 +68,7 @@ const TEXT = {
   sendFailed: { ar: "لم تُرسل الرسالة: تحقّق من الاتصال، ثم اضغط إرسال", fr: "Message non envoyé : vérifiez la connexion, puis appuyez sur Envoyer" },
   noLink: { ar: "لا يوجد اتصال بالطبيب: أعد تحميل الصفحة", fr: "Pas de connexion avec le médecin : rechargez la page" },
   or: { ar: "أو", fr: "ou" },
+  didYouMean: { ar: "تقصد؟", fr: "Vouliez-vous dire ?" },
   doctorTyping: { ar: "الطبيب يكتب…", fr: "Le médecin écrit…" },
   doctorTalking: { ar: "الطبيب يتكلم…", fr: "Le médecin parle…" },
   me: { ar: "أنا", fr: "Moi" },
@@ -306,7 +310,21 @@ function setView(view) {
   dom.stage.dataset.view = view;
 }
 
-const HAND_TEXT = { none: TEXT.handNone, seen: TEXT.handSeen, recording: TEXT.handRecording };
+const HAND_TEXT = { none: TEXT.handNone, seen: TEXT.handSeen, recording: TEXT.handRecording, far: TEXT.handFar };
+
+// Framing: the model reads hand positions relative to the shoulders. If the camera
+// does not see the shoulders (patient too close), say so instead of guessing.
+const framing = { recent: [] };
+
+function noteFraming(rawFrame) {
+  framing.recent.push(Number.isFinite(rawFrame[33]) && Number.isFinite(rawFrame[36]));   // pose points 11, 12
+  if (framing.recent.length > 20) framing.recent.shift();
+}
+
+function shouldersOutOfView() {
+  const seen = framing.recent.filter(Boolean).length;
+  return framing.recent.length >= 10 && seen < framing.recent.length * 0.3;
+}
 
 function setHand(hand) {
   if (dom.stage.dataset.hand === hand) return;
@@ -362,7 +380,7 @@ async function loadEngine() {
     importModule("./lib/tracker.js"),
     importModule("./lib/recognizer.js"),
   ]);
-  const { pacedCapture } = paceModule;
+  const { pacedCapture, dropRestingHands } = paceModule;
   const { Tracker } = trackerModule;
   const { Recognizer } = recognizerModule;
   if (typeof pacedCapture !== "function" || typeof Tracker?.create !== "function" || typeof Recognizer?.load !== "function") {
@@ -376,7 +394,9 @@ async function loadEngine() {
     step("tracker", () => Tracker.create({})),
   ]);
   // The capture follows the camera's frame rate, so a fast device does not cut signs short.
-  return { tracker, recognizer, newCapture: pacedCapture };
+  // Hands resting at the waist are dropped before the capture: at a desk they stay visible,
+  // unlike in the training recordings (see dropRestingHands in lib/pace.js).
+  return { tracker, recognizer, newCapture: pacedCapture, dropRestingHands: dropRestingHands ?? ((f) => f) };
 }
 
 /** The engine, or null after showing why it is not there. */
@@ -510,9 +530,11 @@ function reflectSigning() {
 }
 
 /** One landmark frame into the capture; a finished clip goes to the model. */
-function feed(frame, seconds, run) {
+function feed(rawFrame, seconds, run) {
+  const frame = state.engine?.dropRestingHands ? state.engine.dropRestingHands(rawFrame) : rawFrame;
+  noteFraming(rawFrame, frame);
   const clip = state.capture.push(frame, seconds);
-  setHand(state.capture.recording ? "recording" : frameHasHand(frame) ? "seen" : "none");
+  setHand(state.capture.recording ? "recording" : shouldersOutOfView() ? "far" : frameHasHand(frame) ? "seen" : "none");
   reflectSigning();
   if (clip) recognise(clip, run);
 }
@@ -540,11 +562,39 @@ function recognise(clip, run) {
       return { label: null, confidence: 0, top3: [] };
     })
     .then((prediction) => {
+      logAttempt(clip, prediction);
       if (run && state.clipRun !== run) return;   // that demonstration video was dismissed
       takePrediction(prediction, run);
     })
     .catch((error) => console.error("[SignBridge] the result could not be shown:", error));
   run?.pending.push(shown);
+}
+
+// With ?debug=1 in the address, each attempt is listed in a small panel: what was
+// proposed, the next guesses, how sure the model was, and how long the sign was.
+const DEBUG = new URLSearchParams(location.search).has("debug");
+const attempts = [];
+
+function logAttempt(clip, prediction) {
+  if (!DEBUG) return;
+  const name = (code) => state.byCode?.get?.(code)?.fr ?? code;
+  const pct = (p) => `${Math.round(p * 100)} %`;
+  const guesses = (prediction.top3 ?? []).map(([code, p]) => `${name(code)} ${pct(p)}`).join(", ");
+  const threshold = state.engine?.recognizer?.threshold ?? 0.5;
+  const verdict = prediction.label
+    ? `Proposé : ${name(prediction.label)} (${pct(prediction.confidence)})`
+    : (prediction.top3?.length ? `Refait demandé : le meilleur, ${guesses.split(",")[0]}, est sous ${pct(threshold)}` : "Aucune main dans la séquence");
+  const handFrames = clip.filter((f) => Number.isFinite(f[33 * 3]) || Number.isFinite(f[54 * 3])).length;
+  attempts.unshift(`${verdict}\n  essais : ${guesses || "aucun"}\n  ${clip.length} images, ${handFrames} avec une main`);
+  attempts.length = Math.min(attempts.length, 6);
+  let panel = document.getElementById("debug-panel");
+  if (!panel) {
+    panel = document.createElement("pre");
+    panel.id = "debug-panel";
+    panel.className = "debug-panel";
+    document.body.append(panel);
+  }
+  panel.textContent = `Diagnostic (?debug=1)\n\n${attempts.join("\n\n")}`;
 }
 
 function stopLoop() {
@@ -805,7 +855,7 @@ async function finishClip(run) {
   setHand("none");
   await Promise.all(run.pending);
   if (state.clipRun !== run) return;
-  if (run.added.size === 0) showNotice("unknown");   // no sign was recognised in the whole video
+  if (run.added.size === 0 && !run.offered) showNotice("unknown");   // no sign recognised nor offered in the whole video
   run.holdTimer = setTimeout(() => {
     if (state.clipRun !== run) return;
     abandonClip();
@@ -832,6 +882,13 @@ function takePrediction(prediction, run) {
     result.top3.map(({ code, p }) => `${code} ${p.toFixed(2)}`).join(", "));
   if (run) run.predictions += 1;
   if (!result.label) {
+    // The model hesitates between a few signs (Toux or Asthme, say): offer them to tap.
+    // On held-out recordings this turns half of the "sign again" cases into a right word.
+    if (result.top3.length && result.top3[0].p >= CHOICE_FLOOR) {
+      if (run) run.offered = true;
+      offerChoices(result.top3);
+      return;
+    }
     // From the camera: say so now. From a video: decided once the video is over.
     if (!run) showNotice("unknown");
     return;
@@ -843,7 +900,28 @@ function takePrediction(prediction, run) {
   addWord(result.label, result.top3);
 }
 
+function offerChoices(top3) {
+  state.choices = top3.slice(0, 3);
+  clearTimeout(state.choiceTimer);
+  state.choiceTimer = setTimeout(() => {
+    state.choices = null;
+    renderWords();
+  }, CHOICE_MS);
+  hideNotice(["unknown", "sent"]);
+  renderWords();
+  announce(`Vouliez-vous dire : ${state.choices.map((c) => nameOf(c.code, "fr")).join(", ")} ?`);
+}
+
+function takeChoice(code) {
+  const top3 = state.choices ?? [];
+  state.choices = null;
+  clearTimeout(state.choiceTimer);
+  addWord(code, [{ code, p: 1 }, ...top3.filter((c) => c.code !== code)]);
+}
+
 function addWord(code, top3) {
+  state.choices = null;
+  clearTimeout(state.choiceTimer);
   const key = ++state.wordKey;
   state.words.push({ code, top3, key });
   markNew(key);
@@ -939,9 +1017,21 @@ function renderWords() {
       })));
   }
 
+  if (state.choices?.length) {
+    nodes.push(el("span", { class: "alts alts--choices", role: "group", "aria-label": "Vouliez-vous dire ?" },
+      bilingual(TEXT.didYouMean, "alts__or bi"),
+      ...state.choices.map((candidate) => {
+        const label = names(candidate.code);
+        return el("button", {
+          type: "button", class: "alt choice", "data-choice": candidate.code,
+          "aria-label": `Ajouter ${label.fr}`,
+        }, arabic(label.ar, "alt__ar ar"), el("span", { class: "alt__fr" }, label.fr));
+      })));
+  }
+
   if (state.notice) {
     nodes.push(bilingual(state.notice.text, `notice notice--${state.notice.kind}`));
-  } else if (!state.words.length) {
+  } else if (!state.words.length && !state.choices?.length) {
     nodes.push(bilingual(TEXT.emptySentence, "words__empty bi"));
   }
   dom.words.replaceChildren(...nodes);
@@ -1273,6 +1363,11 @@ function bindControls() {
   dom.start.addEventListener("click", () => startCamera());
 
   dom.words.addEventListener("click", (event) => {
+    const choice = event.target.closest?.(".choice");
+    if (choice) {
+      takeChoice(choice.dataset.choice);
+      return;
+    }
     const alt = event.target.closest?.(".alt");
     if (alt) {
       replaceLast(alt.dataset.code);
