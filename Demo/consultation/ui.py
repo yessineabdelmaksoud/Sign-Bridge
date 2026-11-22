@@ -71,13 +71,20 @@ CSS = f"""
 .stApp [class*="st-key-ins_"] button p,
 .stApp [class*="st-key-confirm_"] button p,
 .stApp [class*="st-key-multi_done"] button p {{
-  white-space: pre-line; unicode-bidi: plaintext; text-align: center;
+  display: block; margin: 0; white-space: pre-line; unicode-bidi: plaintext; text-align: center;
   font-weight: 700; font-size: 1.08rem; line-height: 1.4; color: inherit;
 }}
 .stApp [class*="st-key-opt_"] button p::first-line,
 .stApp [class*="st-key-guess_"] button p::first-line,
 .stApp [class*="st-key-ins_"] button p::first-line,
 .stApp [class*="st-key-confirm_"] button p::first-line {{ font-size: 2.7rem; line-height: 1.45; }}
+.stApp [class*="st-key-opt_"] button [data-testid="stMarkdownContainer"],
+.stApp [class*="st-key-guess_"] button [data-testid="stMarkdownContainer"],
+.stApp [class*="st-key-ins_"] button [data-testid="stMarkdownContainer"],
+.stApp [class*="st-key-confirm_"] button [data-testid="stMarkdownContainer"],
+.stApp .st-key-multi_done button [data-testid="stMarkdownContainer"] {{
+  overflow: visible; text-overflow: clip; white-space: normal; width: 100%;
+}}
 .stApp [class*="st-key-opt_"] button:hover,
 .stApp [class*="st-key-guess_"] button:hover,
 .stApp [class*="st-key-ins_"] button:hover {{ background: #E3ECF7; border-color: var(--sign); color: var(--ink); }}
@@ -105,7 +112,7 @@ CSS = f"""
 .sb-note dt {{ color: var(--muted); font-size: .86rem; margin-top: .65rem; }}
 .sb-note dd {{ margin: 0; font-size: 1.12rem; font-weight: 700; color: var(--ink); }}
 .sb-note .empty {{ color: var(--muted); margin: 0; }}
-.sb-flag {{
+.stApp .sb-flag, .stApp .sb-flag span {{
   background: var(--alert); color: #fff; font-weight: 800; border-radius: 4px;
   padding: .55rem .8rem; margin: 0 0 .5rem; font-size: 1.02rem;
 }}
@@ -131,7 +138,7 @@ CSS = f"""
 .sb-cam.rec i {{ background: var(--alert); animation: sb-pulse 1s ease-in-out infinite; }}
 @keyframes sb-pulse {{ 50% {{ opacity: .25; }} }}
 @media (prefers-reduced-motion: reduce) {{ .sb-cam.rec i {{ animation: none; }} }}
-.sb-foot {{ color: var(--muted); font-size: .88rem; margin-top: 1.6rem; max-width: 70ch; }}
+.stApp .sb-foot {{ color: var(--muted); font-size: .88rem; margin-top: 1.6rem; max-width: 70ch; }}
 """
 
 _FACES = ("🙂", "🙂", "🙂", "🙂", "😐", "😐", "😐", "😣", "😣", "😫", "😫")

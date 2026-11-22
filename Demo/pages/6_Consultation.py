@@ -198,8 +198,9 @@ def question_view(question) -> None:
             for row in BODY_ROWS:
                 tiles(row, 3)
     elif question.kind == "choice":
-        tiles(question.options[:5], 5)
-        tiles(question.options[5:], 7)
+        tiles(question.options[:5], 3)
+        if tunisian.signing_enabled:   # weekdays are offered only when they can be signed
+            tiles(question.options[5:], 4)
     else:
         if consultation.collected:
             html(ui.chips_html(flow, consultation.collected))
@@ -260,7 +261,7 @@ def doctor_side() -> None:
         summary = build_summary(flow, consultation.answers)
     html(ui.note_html(summary))
     st.write("")
-    st.button("🧏 Demander un interprète / نحب مترجم", key="ask_interpreter", on_click=ask_interpreter,
+    st.button("🧏 Interprète / مترجم", key="ask_interpreter", on_click=ask_interpreter,
               disabled=state.interpreter, use_container_width=True)
     st.button("Terminer et effacer les réponses", key="end_consultation", on_click=start_over,
               use_container_width=True)
