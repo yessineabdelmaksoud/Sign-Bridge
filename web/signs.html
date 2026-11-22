@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SignBridge : les signes</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body.signs { background: var(--wall); color: var(--ink); font-family: var(--latin); margin: 0; }
+  .signs__wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 48px; }
+  .signs__top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .signs__top h1 { font-size: 32px; color: var(--blue); margin: 0; }
+  .signs__top a { color: var(--blue); font-weight: 700; }
+  .signs__lead { max-width: 70ch; margin: 10px 0 22px; line-height: 1.5; }
+  .signs__filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .signs__filters button {
+    min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--line-strong);
+    background: var(--white); color: var(--ink); font: 700 15px var(--latin); cursor: pointer;
+  }
+  .signs__filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+  .signs__group { margin: 0 0 28px; }
+  .signs__group h2 { font-size: 20px; margin: 0 0 4px; }
+  .signs__group p { color: var(--muted); margin: 0 0 12px; font-size: 15px; }
+  .signs__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .sign {
+    background: var(--white); border: 2px solid transparent; border-radius: var(--radius-s);
+    padding: 12px; display: grid; gap: 8px; cursor: pointer; text-align: left; font: inherit; color: inherit;
+  }
+  .sign:hover, .sign:focus-visible { border-color: var(--blue); outline: none; }
+  .sign canvas { width: 100%; aspect-ratio: 1 / 1; display: block; }
+  .sign__names { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .sign__fr { font-weight: 800; font-size: 18px; }
+  .sign__ar { font-family: var(--arabic); direction: rtl; font-size: 17px; color: var(--muted); }
+  .sign__state { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; justify-self: start; }
+  .sign__state--yes { background: var(--green); color: var(--white); }
+  .sign__state--no { background: var(--wall); color: var(--muted); }
+  .sign__words { font-size: 13px; color: var(--muted); line-height: 1.4; }
+</style>
+</head>
+<body class="signs">
+<div class="signs__wrap">
+  <div class="signs__top">
+    <h1>Les signes</h1>
+    <a href="index.html">Retour à l'accueil</a>
+  </div>
+  <p class="signs__lead">Touchez un signe pour le voir. « Reconnu par la caméra » : le patient peut le faire devant la caméra et il s'ajoute à sa phrase. « Montré seulement » : le médecin peut l'envoyer, le patient le voit, mais la caméra ne le reconnaît pas encore de façon fiable. Sous chaque signe, les mots du médecin qui le font apparaître.</p>
+  <div class="signs__filters" id="filters" role="group" aria-label="Filtrer les signes"></div>
+  <div id="groups"></div>
+</div>
+<script type="module">
+import { loadSignPoses, SignAvatar } from "./lib/avatar.js";
+import { signWords } from "./lib/lexicon.js";
+
+const LANGUAGE = {
+  lse: "Langue des signes espagnole (jeu de données SWL-LSE)",
+  tunisian: "Langue des signes tunisienne (jeu de données réalisé avec l'ATILS)",
+};
+const FILTERS = [["all", "Tous"], ["yes", "Reconnus par la caméra"], ["no", "Montrés seulement"]];
+
+const [data, poses] = await Promise.all([fetch("data/signs.json").then((r) => r.json()), loadSignPoses()]);
+const groupsEl = document.getElementById("groups");
+const cards = [];
+
+for (const group of data.groups) {
+  const members = data.signs.filter((sign) => sign.group === group.id);
+  if (!members.length) continue;
+  const section = document.createElement("section");
+  section.className = "signs__group";
+  section.innerHTML = `<h2></h2><p></p><div class="signs__grid"></div>`;
+  section.querySelector("h2").textContent = group.fr;
+  section.querySelector("p").textContent = LANGUAGE[members[0].language] ?? "";
+  const grid = section.querySelector(".signs__grid");
+  for (const sign of members) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "sign";
+    card.setAttribute("aria-label", `Voir le signe ${sign.fr}`);
+    card.innerHTML = `<canvas aria-hidden="true"></canvas>
+      <span class="sign__names"><span class="sign__fr"></span><span class="sign__ar" lang="ar" dir="rtl"></span></span>
+      <span class="sign__state"></span><span class="sign__words"></span>`;
+    card.querySelector(".sign__fr").textContent = sign.fr;
+    card.querySelector(".sign__ar").textContent = sign.ar;
+    const state = card.querySelector(".sign__state");
+    state.textContent = sign.weak ? "Montré seulement" : "Reconnu par la caméra";
+    state.classList.add(sign.weak ? "sign__state--no" : "sign__state--yes");
+    card.querySelector(".sign__words").textContent = `Mots du médecin : ${signWords(sign.code, data.signs).join(", ")}`;
+    grid.append(card);
+    cards.push({ card, sign, section });
+    // Each figure is created once it is on screen, then plays its sign when touched.
+    let avatar = null;
+    new IntersectionObserver((entries, observer) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        avatar = new SignAvatar(card.querySelector("canvas"), poses);
+        avatar.preview(sign.code);
+        observer.disconnect();
+      }
+    }).observe(card);
+    card.addEventListener("click", () => {
+      avatar ??= new SignAvatar(card.querySelector("canvas"), poses);
+      avatar.play([sign.code]).then(() => { if (!avatar.playing) avatar.preview(sign.code); });
+    });
+  }
+  groupsEl.append(section);
+}
+
+const filtersEl = document.getElementById("filters");
+for (const [id, label] of FILTERS) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.setAttribute("aria-pressed", String(id === "all"));
+  button.addEventListener("click", () => {
+    for (const other of filtersEl.children) other.setAttribute("aria-pressed", String(other === button));
+    for (const { card, sign } of cards) {
+      card.hidden = id === "yes" ? sign.weak : id === "no" ? !sign.weak : false;
+    }
+    for (const section of groupsEl.children) {
+      section.hidden = [...section.querySelectorAll(".sign")].every((c) => c.hidden);
+    }
+  });
+  filtersEl.append(button);
+}
+window.signsReady = { signs: cards.length };
+</script>
+</body>
+</html>

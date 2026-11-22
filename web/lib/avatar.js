@@ -264,6 +264,15 @@ export class SignAvatar {
     this.#draw(REST_FRAME);
   }
 
+  /** Draw `code` frozen in the middle of its movement. False if there is no such sign. */
+  preview(code) {
+    const sign = this.#poses.signs.get(code);
+    if (!sign || !sign.frames.length) return false;
+    this.stop();
+    this.#draw(sign.frames[Math.floor(sign.frames.length / 2)]);
+    return true;
+  }
+
   #end() {
     this.playing = false;
     this.#tick = 0;

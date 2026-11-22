@@ -856,3 +856,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .composer__row { flex-direction: column; }
   .bar__actions { width: 100%; }
 }
+
+.landing__signs { margin: 18px 0 0; text-align: center; }
+.landing__signs a { color: var(--blue); font-weight: 700; }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import * as LEXICON from "../lib/lexicon.js";
 import { signName, signsToSentence, textToSigns } from "../lib/lexicon.js";
 import { readJson } from "./helpers.js";
 
@@ -228,4 +229,16 @@ test("a doctor's everyday sentences find the Tunisian signs", () => {
   assert.deepEqual(textToSigns("Votre sœur a de la fièvre ?", ALL), ["TN_O5T", "FIEBRE2"]);
   assert.deepEqual(textToSigns("Oui, d'accord.", ALL), ["TN_OUI"]);
   assert.deepEqual(textToSigns("Voulez-vous que je vous l'écrive ?", ALL), ["TN_T7EB", "TN_NEKTEBLK"]);
+});
+
+test("signWords lists the doctor's words that show a sign, its name first", () => {
+  const { signWords } = LEXICON;
+  assert.deepEqual(signWords("TN_SBITAR", ALL), ["Hôpital", "hôpitaux"]);   // "hôpital", "l'hôpital": same word
+  assert.ok(signWords("TOSER", ALL).includes("tousser"));
+  assert.deepEqual(signWords("NOT_A_SIGN", ALL), []);
+  for (const sign of ALL) {
+    for (const word of signWords(sign.code, ALL)) {
+      assert.ok(textToSigns(word, ALL).includes(sign.code), `${word} -> ${sign.code}`);
+    }
+  }
 });

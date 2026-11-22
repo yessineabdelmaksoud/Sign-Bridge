@@ -232,3 +232,20 @@ export function textToSigns(text, signs) {
   }
   return found;
 }
+
+/**
+ * The words in a doctor's sentence that show this sign to the patient: the sign's
+ * French name first, then its synonyms. An unknown code gives [].
+ */
+export function signWords(code, signs) {
+  const sign = byCode(signs).get(code);
+  if (!sign) return [];
+  const seen = new Set();
+  return [sign.fr, ...(SYNONYMS[code] ?? [])].filter((word) => {
+    // "l'hôpital" and "j'écris" add nothing to "hôpital" and "écris": elided letters are ignored.
+    const key = words(word).filter((token) => token.length > 1).join(" ");
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}

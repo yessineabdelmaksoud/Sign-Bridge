@@ -33,6 +33,8 @@ Open http://localhost:8520 in Chrome or Edge, choose a room name, then:
 
 To let the doctor join from another device on the same network, start the server with `--host 0.0.0.0` and open `http://<laptop address>:8520/doctor.html?room=<room>` there. The patient screen must stay on `localhost` (browsers only give camera access on `localhost` or `https`).
 
+**The signs page.** http://localhost:8520/signs.html shows every sign as a stick figure you can play, says whether the camera recognises it, and lists the doctor's words that show it.
+
 **Demonstration without a signer.** The patient screen has a "Démonstration sans signeur" control: it plays a reference recording of a medical sign through exactly the same recognition path, without showing the person in it, so a presenter can build and send a sentence.
 
 ## How a conversation works

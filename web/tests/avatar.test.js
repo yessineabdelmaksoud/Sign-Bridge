@@ -170,3 +170,13 @@ test("playback blends between recorded frames for smooth motion", () => {
   assert.equal(frameBetween(sign, 0, 10).p[0], 0);
   assert.equal(frameBetween(sign, 5, 10).p[0], 10);
 });
+
+test("preview shows a sign frozen in the middle of its movement", () => {
+  const canvas = fakeCanvas();
+  const avatar = new SignAvatar(canvas, poses, fakeTime());
+  const atRest = canvas.ctx.points.length;
+  assert.equal(avatar.preview("TOSER"), true);
+  assert.ok(canvas.ctx.points.length > atRest);
+  assert.equal(avatar.preview("NOT_A_SIGN"), false);
+  assert.equal(avatar.playing, false);
+});
