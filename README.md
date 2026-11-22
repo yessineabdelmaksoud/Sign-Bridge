@@ -1,139 +1,133 @@
 # SignBridge
 
-SignBridge helps a deaf patient and a hearing doctor or pharmacist get through a short consultation without an interpreter. Both sit at one screen. The patient answers each question by signing or by tapping a picture, confirms what the app understood, and the doctor receives a written summary in French and Arabic.
+A deaf patient and a hearing doctor talk in real time, each on their own screen, without an interpreter.
 
-The consultation page works with the network switched off, and no camera image is stored or sent anywhere.
+- **The patient signs.** Each sign the camera recognises becomes a word on the patient's screen. The patient builds a sentence from several signs, fixes or removes words, and sends it.
+- **The doctor reads and hears it** as a proper French sentence ("Je suis malade. J'ai de la fièvre et de la toux."), then answers by typing, dictating, or choosing a ready-made phrase.
+- **The patient sees the answer** in large text, and the signs for it performed by a stick figure, one after another.
 
-![The consultation page](docs/consultation.jpg)
+Everything runs in the browser on one computer: the camera image is turned into body and hand points, and the sign model reads those points. No camera image is stored or sent anywhere.
 
-## What the consultation does
+![Patient and doctor screens side by side](docs/screens.jpg)
 
-1. **Consent.** The patient is told that the camera reads hand positions only and agrees or refuses.
-2. **Why are you here today?** Signed or tapped: sick, appointment, medicine, urgent.
-3. **Main problem.** Signed or tapped: one of 14 symptoms.
-4. **Where, how strong, since when.** Body map, 0–10 scale and duration, by tapping.
-5. **Known conditions.** Signed or tapped: diabetes, asthma, heart disease, pregnancy, or none.
-6. **Three yes/no questions.** Medicine allergy, current treatment, fever.
-7. **Summary.** The doctor reads the note, sees any urgency flag, and can show the patient a reply such as "come back in 3 days".
+## Start it
 
-After every answer the app shows what it understood and asks "correct?". Only a confirmed answer reaches the doctor's note. Every question can be answered by tapping, and a "request an interpreter" button is always on screen.
+Python 3 only (standard library); no install for the app itself.
+
+```bash
+git clone https://github.com/MohamedYassineAbid/Sign-Bridge.git
+```
+
+```bash
+cd Sign-Bridge
+```
+
+```bash
+python3 web/serve.py
+```
+
+Open http://localhost:8520 in Chrome or Edge, choose a room name, then:
+
+- **Les deux sur cet écran**: both screens side by side, for a demo on one laptop.
+- **Écran du patient** on the laptop with the camera, and **Écran du médecin** on another window or another device, with the same room name.
+
+To let the doctor join from another device on the same network, start the server with `--host 0.0.0.0` and open `http://<laptop address>:8520/doctor.html?room=<room>` there. The patient screen must stay on `localhost` (browsers only give camera access on `localhost` or `https`).
+
+**Demonstration without a signer.** The patient screen has a "Démonstration sans signeur" control: it plays a reference recording of a medical sign through exactly the same recognition path, without showing the person in it, so a presenter can build and send a sentence.
+
+## How a conversation works
+
+| Step | Patient screen | Doctor screen |
+|---|---|---|
+| The patient signs "malade", lowers the hands, signs "fièvre" | Each recognised sign appears as a word; the last word offers the next two guesses as a correction | "Le patient signe…" |
+| The patient presses **Envoyer** | The sentence is sent | "Je suis malade. J'ai de la fièvre." appears and is read aloud |
+| The doctor types "Allez à l'hôpital aujourd'hui." | "Le médecin écrit…" | Below the field: the signs the patient will see (Hôpital, Aujourd'hui) |
+| The doctor presses **Envoyer** | The text in large letters, and the stick figure signs Hôpital then Aujourd'hui | |
 
 ## Where AI is used, and where it is not
 
 | Task | Method | Why |
 |---|---|---|
-| Find hands and body in the camera image | MediaPipe (learned model) | No rule can find a hand in pixels |
-| Recognise a sign | Small neural network on landmarks | Signs vary with the person, speed and angle |
-| Question order and skip logic | Rules in `Demo/consultation/flow.json` | Must be predictable and reviewable by a clinician |
-| Urgency flags | Rules in the same file | Must be auditable; they are never a diagnosis |
-| Summary text | Fixed templates | The vocabulary is closed, so nothing needs generating |
+| Find the body and hands in the camera image | MediaPipe Holistic, in the browser | No rule can find a hand in pixels |
+| Recognise a sign | A small neural network on the body and hand points | Signs vary with the person, speed and angle |
+| Turn the patient's signs into a sentence | Fixed rules (`web/lib/lexicon.js`) | The vocabulary is closed; nothing needs generating |
+| Find the signs for the doctor's words | Word matching with synonyms | Predictable, and the doctor sees the result before sending |
+| Show a sign to the patient | A stick figure replaying recorded movement (`web/lib/avatar.js`) | No video of a real person is shown |
+| Read aloud, dictation | The browser's speech services | Optional; dictation needs the browser's online speech service |
 
-The fixed question also makes recognition easier: at each step the model chooses only among that question's valid answers (4, 14 or 4 signs) instead of all 22.
+## The signs
 
-## Results
+- **22 medical signs** (pain, headache, fever, cough, dizziness, diabetes, pregnancy, appointment, medicine, urgent…) in **Spanish Sign Language**, from SWL-LSE: 1,061 recordings by 124 signers. No open Tunisian medical sign dataset exists yet.
+- **27 everyday words in Tunisian Sign Language** (bonjour, ça va, oui, non, vouloir, aider, hôpital, dispensaire, maison, family members, the seven days), from the Tunisian Sign Language Dataset made with ATILS.
 
-All numbers are for the 22 health signs plus an "other" class, on SWL-LSE (Spanish Sign Language): 1,061 clips. Whether the dataset's split keeps signers apart is not stated in what we checked, so treat these as accuracy on unseen clips, not proven accuracy on unseen people.
+Every sign can be shown to the patient as a stick figure. Not every sign is recognised from the patient's camera: a sign is proposed only if it was recognised reliably on signers the model never saw (see Results).
 
-| Measure | Result | Clips |
-|---|---|---|
-| Right sign among all 23 classes (5-fold cross-validation) | 80.7% ± 1.3 | 1,061 |
-| Right sign in the top 3 (5-fold cross-validation) | 93.3% ± 1.5 | 1,061 |
-| "Why today?", choosing among its 4 answers | 92.4% ± 2.8 | 170 |
-| "Main problem", choosing among its 14 answers | 90.6% ± 2.3 | 567 |
-| "Known conditions", choosing among its 4 answers | 91.0% ± 3.4 | 180 |
-| Official test split, all 23 classes | 75.0% | 56 |
-| Official test split, per question (4 / 14 / 4 answers) | 87.5% / 85.7% / 87.5% | 8 / 28 / 8 |
-
-The official test split has two clips per sign, which is why the cross-validation figures are the ones to quote.
-
-**Through the camera path.** Replaying the 125 held-out clips (validation and test) frame by frame through the capture logic and the shipped model: 107 were proposed correctly (86%), 14 led to "please sign again", 2 were not captured, and 2 were proposed wrongly (1.6%), which the patient's "not correct" button is there to catch. The validation clips were used to choose the stopping point and the threshold, so this is slightly optimistic.
-
-**What the app does with this.** A proposal is made only above a confidence threshold of 0.40, chosen so that wrong proposals stayed under 5% on validation. One sign, "heart disease", scored 3 of 6 on held-out clips and is therefore answered by tapping only. On a laptop CPU the full camera path runs at about 10 frames per second.
-
-The model is a small fully connected network (two hidden layers) on hand and upper-body landmarks, trained and run with NumPy. Metrics file: `Demo/consultation/models/health_signs.json`. Confusion matrix: `docs/metrics/health_signs_confusion.png`.
-
+<!-- RESULTS -->
 
 ## Limits
 
-- **The medical signs are Spanish Sign Language, not Tunisian.** No open Tunisian medical sign dataset exists yet. The 22 health signs come from SWL-LSE. Recording Tunisian medical signs with ATILS is the next step.
-- **Signed yes/no and days are not switched on.** The Tunisian model for them is trained only when its accuracy on a separate take reaches 90% (`training/train_tunisl10.py`). Until then those answers are tapped.
+- **The medical signs are Spanish Sign Language.** They are the closest open dataset of health signs. Recording Tunisian medical signs with ATILS and deaf signers is the next step.
+- **The Tunisian data is small**: a few seconds of images per word from one to five signers, cropped at the chin. Several words cannot be recognised reliably yet and are only shown, not recognised.
+- **One sign at a time.** The patient lowers the hands between signs; continuous signing is not recognised.
 - **Lighting and framing matter.** Hand tracking degrades in poor light or when the hands leave the frame.
-- **It is not a diagnostic tool.** It collects answers. The urgency rules and the wording of the questions are waiting for review by a clinician, and the Arabic labels for review by a native speaker.
-- **The camera path has not been tested end to end on a real webcam** by the author of this change. The recogniser, the capture logic and the page (by tapping) are covered by automated tests.
+- **It is not a diagnostic tool.** The sentence rules and the Arabic wording need review by a clinician and a native speaker.
+- **Not yet tested on a real webcam with a deaf signer.** Recognition was checked with recorded signs through the same path the camera uses.
 
 ## Privacy
 
-- The camera image is turned into hand and body landmarks in memory and then dropped. No image or video is written to disk or sent anywhere.
-- The consultation page makes no network calls. A test (`tests/test_offline.py`) fails if network or file-writing code is added to it.
-- No name or identity is asked. Answers live in memory and are erased by "Terminer et effacer les réponses" or after 10 idle minutes. The note leaves the app only when the doctor clicks "Télécharger la note".
-- The camera stays off until the patient switches it on.
+- The camera image is turned into body and hand points in memory, then dropped. No image or video is written or sent.
+- The relay between the two screens keeps the conversation in memory only, and forgets it when the server stops or the doctor starts a new consultation.
+- No name or identity is asked.
+- The only data that can leave the computer: the doctor's voice if dictation is used, and the text read aloud if the browser has no French voice installed. Both are labelled on the doctor's screen.
 
-## Quick start
+## Project layout
 
-Python 3.11 or 3.12.
-
-```bash
-git clone https://github.com/MohamedYassineAbid/Sign-Bridge.git
-cd Sign-Bridge
-python -m venv .venv && source .venv/bin/activate
-```
-
-To run the consultation by tapping (small install):
-
-```bash
-pip install streamlit "numpy<2"
-```
-
-To sign answers with the camera as well:
-
-```bash
-pip install streamlit-webrtc av mediapipe==0.10.13 opencv-python-headless
-```
-
-Then:
-
-```bash
-streamlit run Demo/app.py
-```
-
-and open **Consultation** in the sidebar. To install everything the other demo pages need (TensorFlow, Vosk, ElevenLabs client), use `pip install -r Demo/requirements.txt`.
-
-## The other demo pages
-
-| Page | What it really uses |
+| Path | What it is |
 |---|---|
-| Text to Speech | The ElevenLabs cloud API. Set `ELEVENLABS_API_KEY` in your environment. |
-| Speech to Text | A Vosk model for Tunisian Arabic, downloaded on first use. |
-| Sign to Text | The `tunisl_v4` Keras model: 55 everyday Tunisian signs, one hand. Its published accuracy came from a leaky split and should not be quoted. |
-| Text to Sign | Word-by-word lookup of 58 signs, drawn as a skeleton. Unknown words are skipped. |
-| Conversation Bridge | The four above combined. |
+| `web/` | The app: `patient.html`, `doctor.html`, `split.html`, and `serve.py` (static server and relay) |
+| `web/lib/` | Tracker, features, capture, model, recogniser, lexicon, avatar, channel, speech |
+| `web/data/` | The sign list and the stick-figure movements |
+| `web/models/` | The sign model exported for the browser |
+| `training/` | Building the datasets, training, exporting |
+| `Demo/consultation/` | The Python reference of the recognition code, used by training |
+| `Demo/` (other pages) | The earlier Streamlit experiments (text to speech, speech to text, sign to text) |
 
-The notebooks in `Tun_STT/`, `Tun_TTS/` and `Tun_SiTT/` are experiments: a Whisper fine-tune that reached a 62% word error rate, an XTTS fine-tune that did not complete, and the training of `tunisl_v4`.
+## Rebuilding the model
 
-## Rebuilding the health sign model
+Needs `pip install numpy mediapipe==0.10.13 opencv-python-headless` (Python 3.11 or 3.12).
 
 ```bash
-PYTHONPATH=Demo python -m training.swl_convert --out data/swl22.npz
-PYTHONPATH=Demo python -m training.train_health --data data/swl22.npz
+PYTHONPATH=Demo python -m training.swl_convert
 ```
 
-The first command fetches only the clips it needs from SWL-LSE (about 1,060 of 8,000) with ranged downloads, and reads them without executing the pickle files they come in. The second trains the network, scores it, and writes the model and its metrics to `Demo/consultation/models/`.
+```bash
+git clone --depth 1 https://github.com/W7CH/First-ever-Tunisian-Sign-Language-Dataset data/tunsl
+```
+
+```bash
+PYTHONPATH=Demo python -m training.tunisian_signs extract
+```
+
+```bash
+PYTHONPATH=Demo python -m training.train_combined
+```
+
+```bash
+PYTHONPATH=Demo python -m training.export_web
+```
+
+The first command fetches only the SWL-LSE recordings it needs (about 1,060 of 8,000) and reads them without running any code from the files. The stick figures are rebuilt with `training.export_poses` and `training.tunisian_signs poses`.
 
 ## Tests
 
 ```bash
-pip install pytest
-pytest
+node --test web/tests/
 ```
 
-## Roadmap
-
-- Record Tunisian medical signs with ATILS and deaf signers, and retrain.
-- Train and gate the Tunisian yes/no and day signs.
-- Clinical review of the questions and urgency rules.
-- A sequence model (BiLSTM or similar) in place of the small network, if it scores better on the same split.
-- Pharmacy and emergency versions of the question flow.
+```bash
+PYTHONPATH=Demo python -m pytest
+```
 
 ## Data and credits
 
-See [ATTRIBUTION.md](ATTRIBUTION.md). The Tunisian Sign Language Dataset (Chakroun and Jerbi, with ATILS) and SWL-LSE (Universidade de Vigo) are both CC BY 4.0. Tunisian speech resources: TunArTTS and the Linagora Tunisian datasets.
+See [ATTRIBUTION.md](ATTRIBUTION.md). SWL-LSE (Universidade de Vigo) and the Tunisian Sign Language Dataset (Chakroun and Jerbi, with ATILS) are both CC BY 4.0. MediaPipe is Apache 2.0.

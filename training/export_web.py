@@ -5,7 +5,7 @@ Writes three files under web/:
                             back, in the order the manifest lists them
   models/health_signs.json  the manifest: labels, threshold, weak labels, where
                             each array sits in the .bin, and the headline metrics
-  data/signs.json           the 22 signs: code, group, pictogram, French and
+  data/signs.json           the signs: code, group, French and
                             Arabic names, reference clip, weak flag
 
 Usage:
@@ -25,12 +25,18 @@ from consultation.recognizer import OTHER
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# flow.json has a pictogram for every sign but none for the three questions.
-GROUP_ICONS = {"reason": "🏥", "symptom": "🩺", "conditions": "📋"}
+# The groups, in display order, with their names on the two screens.
+GROUPS = [
+    {"id": "reason", "fr": "Motif", "ar": "السبب"},
+    {"id": "symptom", "fr": "Symptômes", "ar": "الأعراض"},
+    {"id": "conditions", "fr": "Antécédents", "ar": "أمراض معروفة"},
+    {"id": "everyday", "fr": "Vie courante (signes tunisiens)", "ar": "كلام كل يوم"},
+]
 
 # Copied from the Python meta file as they are. The per-sign table stays behind.
 HEADLINE_METRICS = ("official_test", "official_validation", "cv_folds", "cv_top1", "cv_top3",
-                    "cv_narrowed_top1", "split_signer_independent", "note")
+                    "cv_narrowed_top1", "tunisian_leave_one_signer_out", "best_epoch",
+                    "split_signer_independent", "note")
 
 
 def array_order(layers: int) -> list[str]:
@@ -72,20 +78,31 @@ def build_manifest(meta: dict, described: list[dict], layers: int, blob: bytes) 
 
 
 def build_signs(labels: list[str], weak: list[str]) -> dict:
-    """The sign list, in the model's label order, grouped as flow.json groups them."""
+    """The sign list, in the model's label order. No icons: the screens show words only.
+
+    Health signs (SWL-LSE, Spanish Sign Language) carry their reference video, used only
+    as tracker input in the demonstration; Tunisian everyday words have none.
+    """
+    from training.tunisian_signs import load_vocab
+
     flow = Flow.load()
-    signs = [
-        {"code": code, "group": group, "icon": flow.icon(code), "fr": flow.label(code, "fr"),
-         "ar": flow.label(code, "ar"), "clip": f"clips/{code}.mp4", "weak": code in weak}
-        for group, codes in SIGN_SETS.items() for code in codes
-    ]
-    codes = [sign["code"] for sign in signs]
-    if codes + [OTHER] != labels:
-        raise SystemExit("the signs in flow.json are not the labels the model was trained on")
-    if set(SIGN_SETS) != set(GROUP_ICONS):
-        raise SystemExit(f"GROUP_ICONS must name exactly these groups: {sorted(SIGN_SETS)}")
-    return {"other": OTHER, "groups": [{"id": group, "icon": GROUP_ICONS[group]} for group in SIGN_SETS],
-            "signs": signs}
+    group_of = {code: group for group, codes in SIGN_SETS.items() for code in codes}
+    tunisian = {v["code"]: v for v in load_vocab()}
+    if not labels or labels[-1] != OTHER:
+        raise SystemExit("the model's last label must be OTHER")
+    signs = []
+    for code in labels[:-1]:
+        if code in group_of:
+            signs.append({"code": code, "group": group_of[code], "fr": flow.label(code, "fr"),
+                          "ar": flow.label(code, "ar"), "clip": f"clips/{code}.mp4", "weak": code in weak,
+                          "language": "lse"})
+        elif code in tunisian:
+            signs.append({"code": code, "group": "everyday", "fr": tunisian[code]["fr"], "ar": tunisian[code]["ar"],
+                          "clip": None, "weak": code in weak, "language": "tunisian"})
+        else:
+            raise SystemExit(f"{code}: in the model but in neither flow.json nor tunisian_vocab.json")
+    used = {sign["group"] for sign in signs}
+    return {"other": OTHER, "groups": [group for group in GROUPS if group["id"] in used], "signs": signs}
 
 
 def check_shapes(meta: dict, described: list[dict]) -> None:
