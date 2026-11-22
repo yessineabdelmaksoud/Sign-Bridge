@@ -17,7 +17,6 @@ window.__signbridgeBooted = true;
 
 const SIGNS_URL = "data/signs.json";
 const MODEL_URL = "models/health_signs.json";
-const DEFAULT_ROOM = "demo";
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 const ARABIC_TEXT = /[ء-ي]/;     // the doctor wrote or dictated in Tounsi
 
@@ -117,6 +116,15 @@ const clamp01 = (value) => (Number.isFinite(value) ? Math.min(1, Math.max(0, val
 
 const dom = {
   roomName: $("#room-name"),
+  scan: $("#scan"),
+  roomHere: $("#btn-room-here"),
+  inviteOpen: $("#btn-invite"),
+  invite: $("#invite"),
+  inviteRoom: $("#invite-room"),
+  inviteQr: $("#invite-qr"),
+  inviteLink: $("#invite-link"),
+  inviteNote: $("#invite-note"),
+  inviteClose: $("#btn-invite-close"),
   link: $("#link-status"),
   stage: $("#stage"),
   cam: $("#cam"),
@@ -151,7 +159,9 @@ const dom = {
 };
 
 const state = {
-  room: DEFAULT_ROOM,
+  room: null,
+  doctorSeen: false,         // the doctor's screen has joined the room
+  inviteAuto: false,         // the room's QR code was shown on its own, not asked for
   signs: [],
   byCode: new Map(),
   lexicon: null,             // lib/lexicon.js, or null while (or if not) loaded
@@ -222,11 +232,63 @@ function setBilingual(node, words) {
   fr.textContent = words?.fr ?? "";
 }
 
+/** The room in ?room=, or null: the patient joins a room by scanning the doctor's code. */
 function readRoom() {
   const asked = new URLSearchParams(location.search).get("room");
   if (asked && ROOM_PATTERN.test(asked)) return asked;
-  if (asked) console.warn(`[SignBridge] room name not allowed, using "${DEFAULT_ROOM}":`, asked);
-  return DEFAULT_ROOM;
+  if (asked) console.warn("[SignBridge] room name not allowed:", asked);
+  return null;
+}
+
+/* The room's QR code, for a doctor who joins from a phone (the patient's screen
+   opened the room, on the computer with the camera). */
+
+const INVITE_LOCAL_ONLY = "Ce code ne s'ouvre que sur cet ordinateur. Pour qu'un téléphone puisse le scanner, "
+  + "lancez le serveur avec --host 0.0.0.0, sur le même Wi-Fi que le téléphone.";
+
+async function openInvite({ auto = false } = {}) {
+  state.inviteAuto = auto;
+  dom.inviteRoom.textContent = state.room;
+  dom.invite.hidden = false;
+  dom.inviteClose.focus({ preventScroll: true });
+  try {
+    const [{ shareBase, joinUrl }, { qrSvg }] = await Promise.all([import("./lib/invite.js"), import("./lib/qr.js")]);
+    const { base, reachable } = await shareBase(location);
+    const url = joinUrl(base, "doctor.html", state.room);
+    dom.inviteQr.innerHTML = qrSvg(url);
+    dom.inviteLink.href = url;
+    dom.inviteLink.textContent = url;
+    dom.inviteNote.textContent = INVITE_LOCAL_ONLY;
+    dom.inviteNote.hidden = reachable;
+  } catch (error) {
+    console.error("[SignBridge] the room's QR code could not be made:", error);
+    dom.inviteLink.href = `doctor.html?room=${encodeURIComponent(state.room)}`;
+    dom.inviteLink.textContent = dom.inviteLink.href;
+  }
+}
+
+function closeInvite() {
+  if (dom.invite.hidden) return;
+  dom.invite.hidden = true;
+  if (!state.inviteAuto) dom.inviteOpen.focus({ preventScroll: true });
+}
+
+/** The doctor's screen has joined: the code is no longer needed on screen. */
+function noteDoctor() {
+  if (state.doctorSeen) return;
+  state.doctorSeen = true;
+  if (state.inviteAuto) closeInvite();
+}
+
+/** No room: say to scan the doctor's code, or open a room on this screen. */
+function showScan() {
+  dom.scan.hidden = false;
+  dom.roomName.textContent = "";
+  dom.link.hidden = true;   // nothing connects until a room is joined
+  dom.roomHere.addEventListener("click", () => {
+    const room = String(1000 + Math.floor(Math.random() * 9000));
+    location.replace(`?room=${room}&invite=1`);
+  });
 }
 
 function newId() {
@@ -1274,6 +1336,7 @@ function sendStatus(value) {
 
 function onEvent(event) {
   if (!event || typeof event !== "object") return;
+  if (event.from === "doctor") noteDoctor();
   try {
     if (event.type === "message") onMessage(event);
     else if (event.type === "status") onStatus(event);
@@ -1340,6 +1403,12 @@ async function connect() {
     renderLink();
     console.info(`[SignBridge] joined room "${state.room}" (${state.channel.transport}).`);
     sendStatus("online");
+    // This screen opened the room ("Ouvrir une salle sur cet écran"): show the code for the doctor.
+    if (new URLSearchParams(location.search).get("invite") === "1") {
+      setTimeout(() => {
+        if (!state.doctorSeen) openInvite({ auto: true });
+      }, 700);
+    }
   } catch (error) {
     console.error("[SignBridge] the room could not be joined:", error);
     state.channel = null;
@@ -1371,6 +1440,14 @@ function enableDemo() {
 }
 
 function bindControls() {
+  dom.inviteOpen.addEventListener("click", () => openInvite());
+  dom.inviteClose.addEventListener("click", closeInvite);
+  dom.invite.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeInvite();
+  });
+  dom.invite.addEventListener("click", (event) => {
+    if (event.target === dom.invite) closeInvite();
+  });
   dom.retry.onclick = null;   // the fallback handler of patient.html, if it was installed
   dom.retry.addEventListener("click", () => (state.retry ?? (() => location.reload()))());
   dom.start.addEventListener("click", () => startCamera());
@@ -1432,7 +1509,12 @@ function bindControls() {
 
 async function boot() {
   state.room = readRoom();
+  if (!state.room) {
+    showScan();   // nothing else starts: no camera, no model, no connection
+    return;
+  }
   dom.roomName.textContent = `Salle ${state.room}`;
+  dom.inviteOpen.hidden = false;
   bindControls();
   setView("loading");
   setBilingual(dom.handPill, HAND_TEXT[dom.stage.dataset.hand] ?? TEXT.handNone);

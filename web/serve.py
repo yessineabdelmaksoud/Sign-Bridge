@@ -12,6 +12,9 @@ The relay (web/CONVERSATION.md) passes conversation events between the patient
 and doctor screens of a room:
 
     GET  /relay/ping              -> {"ok": true}
+    GET  /relay/address           -> {"ok": true, "urls": [...]}: how another device on the
+                                     network reaches this server (empty when only this
+                                     computer can); used for the room's QR code
     GET  /relay/events?room=R     -> text/event-stream: the stored events, then new ones
     POST /relay/send?room=R       -> one JSON event; answers {"ok": true, "id": ...}
 
@@ -126,6 +129,24 @@ _CLOSED = object()  # put in a listener's queue when the server stops
 
 class BadRequest(ValueError):
     """The short reason sent back with a 400."""
+
+
+LOOPBACK = {"127.0.0.1", "localhost", "::1"}
+
+
+def lan_addresses(host: str) -> list:
+    """The addresses other devices can use to reach a server listening on `host`."""
+    if host in LOOPBACK or host.startswith("127."):
+        return []
+    if host not in ("0.0.0.0", "", "::"):
+        return [host]
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("10.255.255.255", 1))   # UDP: nothing is sent; this picks the network interface
+            address = probe.getsockname()[0]
+    except OSError:
+        return []
+    return [] if address.startswith("127.") or address == "0.0.0.0" else [address]
 
 
 def check_room(value) -> str:
@@ -253,6 +274,9 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path == "/relay/ping":
             self._json(HTTPStatus.OK, {"ok": True})
+        elif path == "/relay/address":
+            host, port = self.server.server_address[:2]
+            self._json(HTTPStatus.OK, {"ok": True, "urls": [f"http://{ip}:{port}" for ip in lan_addresses(host)]})
         elif path == "/relay/events":
             self._events()
         elif path == "/relay/send":
@@ -272,7 +296,7 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path == "/relay/send":
             self._send()
-        elif path in ("/relay/ping", "/relay/events"):
+        elif path in ("/relay/ping", "/relay/events", "/relay/address"):
             self._discard_body()
             self._json(HTTPStatus.METHOD_NOT_ALLOWED, {"ok": False, "error": "use GET"}, allow="GET")
         elif path.startswith("/relay/"):

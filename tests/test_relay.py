@@ -425,3 +425,38 @@ def test_host_option():
     assert serve.parse_args([]).port == 8520
     args = serve.parse_args(["--host", "0.0.0.0", "--port", "8701"])
     assert (args.host, args.port) == ("0.0.0.0", 8701)
+
+
+# --- the address another device can open (for the room's QR code) ------------------------
+
+
+def test_address_is_empty_when_only_this_computer_can_connect(server):
+    status, _, data = request(server, "GET", "/relay/address")
+    assert status == 200
+    assert json.loads(data) == {"ok": True, "urls": []}
+
+
+def test_lan_addresses_for_each_way_of_listening():
+    assert serve.lan_addresses("127.0.0.1") == []
+    assert serve.lan_addresses("localhost") == []
+    assert serve.lan_addresses("192.168.1.20") == ["192.168.1.20"]
+    for address in serve.lan_addresses("0.0.0.0"):      # this computer's address on its network, if any
+        assert not address.startswith("127.")
+
+
+def test_address_lists_the_network_address_when_listening_everywhere(monkeypatch):
+    monkeypatch.setattr(serve, "lan_addresses", lambda host: ["192.168.1.20"] if host == "0.0.0.0" else [])
+    srv = serve.make_server("0.0.0.0", 0)
+    thread = threading.Thread(target=srv.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+    thread.start()
+    try:
+        port = srv.server_address[1]
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/relay/address")
+        body = json.loads(conn.getresponse().read())
+        conn.close()
+        assert body == {"ok": True, "urls": [f"http://192.168.1.20:{port}"]}
+    finally:
+        srv.shutdown()
+        srv.server_close()
+        thread.join(5)

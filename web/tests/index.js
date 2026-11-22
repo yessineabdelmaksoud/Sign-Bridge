@@ -13,3 +13,5 @@ import "./channel.test.js";
 import "./lexicon.test.js";
 import "./speech.test.js";
 import "./avatar.test.js";
+import "./qr.test.js";
+import "./invite.test.js";

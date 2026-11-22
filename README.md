@@ -30,12 +30,19 @@ cd Sign-Bridge
 python3 web/serve.py
 ```
 
-Open http://localhost:8520 in Chrome or Edge, choose a room name, then:
+Open http://localhost:8520 in Chrome or Edge. **You join a room by scanning its QR code**:
 
-- **Les deux sur cet écran**: both screens side by side, for a demo on one laptop.
-- **Écran du patient** on the laptop with the camera, and **Écran du médecin** on another window or another device, with the same room name.
+- **Écran du médecin : ouvrir une salle** opens a new room (four digits, such as 4821) and shows its QR code. The patient scans it with the phone's camera and arrives in the same room; the code closes when the patient is there. "Code QR", next to the room name, shows it again.
+- **Écran du patient** without a room asks the patient, in Arabic and French, to scan the code on the doctor's screen. On a computer with no phone at hand, **Ouvrir une salle sur cet écran** opens a room there and shows a code for the doctor's phone instead.
+- **Les deux sur cet écran**: both screens side by side in a new room, for a demo on one laptop.
 
-To let the doctor join from another device on the same network, start the server with `--host 0.0.0.0` and open `http://<laptop address>:8520/doctor.html?room=<room>` there. The patient screen must stay on `localhost` (browsers only give camera access on `localhost` or `https`).
+For a phone to open the code, start the server for the local network, with the phone on the same Wi-Fi:
+
+```bash
+python3 web/serve.py --host 0.0.0.0
+```
+
+The code then carries the computer's network address (the server gives it at `/relay/address`); without `--host 0.0.0.0` the screen says the code only works on this computer. Browsers give the camera, and the microphone for dictation, only on `localhost` or `https`: a screen opened from a phone over plain `http` cannot use them. The patient's camera therefore works on the computer itself; from a phone, use the "Démonstration sans signeur" control, or serve the app over `https`.
 
 **Tunisian speech (optional).** The doctor screen speaks Tounsi by default (the Tounsi / Français switch is at the top). It uses the Tunisian speech of the earlier demo when it is set up:
 
@@ -59,7 +66,7 @@ Without them, the browser's Arabic dictation (Chrome, online) and Arabic voice a
 
 **The signs page.** http://localhost:8520/signs.html shows every sign as a stick figure you can play, says whether the camera recognises it, and lists the doctor's words that show it, in French and in Tounsi.
 
-**Diagnosing a sign.** Add `&debug=1` to the patient screen's address (`patient.html?room=demo&debug=1`): each attempt is listed with what was proposed, the next guesses with their percentages, and how many frames had a hand. If the shoulders are out of view, the screen asks the patient to step back.
+**Diagnosing a sign.** Add `&debug=1` to the patient screen's address (`patient.html?room=4821&debug=1`): each attempt is listed with what was proposed, the next guesses with their percentages, and how many frames had a hand. If the shoulders are out of view, the screen asks the patient to step back.
 
 **Demonstration without a signer.** The patient screen has a "Démonstration sans signeur" control: it plays a reference recording of a medical sign through exactly the same recognition path, without showing the person in it, so a presenter can build and send a sentence.
 
@@ -152,7 +159,7 @@ Metrics: `Demo/consultation/models/health_signs.json`.
 | Path | What it is |
 |---|---|
 | `web/` | The app: `patient.html`, `doctor.html`, `split.html`, `serve.py` (static server and relay) and `speech_service.py` (Tunisian dictation and voice) |
-| `web/lib/` | Tracker, features, capture, model, recogniser, lexicon, avatar, channel, speech |
+| `web/lib/` | Tracker, features, capture, model, recogniser, lexicon, avatar, channel, speech, rooms and QR codes (`invite.js`, `qr.js`) |
 | `web/data/` | The sign list and the stick-figure movements |
 | `web/models/` | The sign model exported for the browser |
 | `training/` | Building the datasets, training, exporting |

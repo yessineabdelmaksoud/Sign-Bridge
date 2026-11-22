@@ -15,7 +15,6 @@
 window.__signbridgeBooted = true;
 
 const SIGNS_URL = "data/signs.json";
-const DEFAULT_ROOM = "demo";
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 const LIVE_WINDOW_MS = 15000;        // older events are history: shown, never read aloud
 const TYPING_IDLE_MS = 5000;         // no key for this long: "typing" becomes "idle"
@@ -91,6 +90,13 @@ const dom = {
   lang: $("#lang"),
   voice: $("#btn-voice"),
   newVisit: $("#btn-new"),
+  inviteOpen: $("#btn-invite"),
+  invite: $("#invite"),
+  inviteRoom: $("#invite-room"),
+  inviteQr: $("#invite-qr"),
+  inviteLink: $("#invite-link"),
+  inviteNote: $("#invite-note"),
+  inviteClose: $("#btn-invite-close"),
   confirm: $("#confirm"),
   confirmYes: $("#btn-confirm"),
   confirmNo: $("#btn-cancel"),
@@ -108,7 +114,7 @@ const dom = {
 };
 
 const state = {
-  room: DEFAULT_ROOM,
+  room: "",
   signs: [],
   byCode: new Map(),
   lexicon: null,
@@ -129,6 +135,9 @@ const state = {
   serverApi: null,
   voiceProblem: "",          // why the Tunisian voice fell back to the browser's, once
   unspoken: null,            // a patient message waiting for the first click to be read
+  newRoom: false,            // this screen opened the room (no ?room= in the address)
+  patientSeen: false,        // the patient's screen has joined the room
+  inviteAuto: false,         // the room's QR code was shown on its own, not asked for
 
   sending: false,
   dictated: false,           // part of the field came from dictation: the message is "dicté"
@@ -155,11 +164,20 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+/**
+ * The room in ?room=; without one, the doctor opens a new room (four digits) and
+ * the address is changed to it, so a reload stays in the same room.
+ */
 function readRoom() {
   const asked = new URLSearchParams(location.search).get("room");
   if (asked && ROOM_PATTERN.test(asked)) return asked;
-  if (asked) console.warn(`[SignBridge] room name not allowed, using "${DEFAULT_ROOM}":`, asked);
-  return DEFAULT_ROOM;
+  if (asked) console.warn("[SignBridge] room name not allowed, opening a new room:", asked);
+  const room = String(1000 + Math.floor(Math.random() * 9000));
+  try {
+    history.replaceState(null, "", `?room=${room}`);
+  } catch { /* the address stays as it is */ }
+  state.newRoom = true;
+  return room;
 }
 
 function newId() {
@@ -730,6 +748,7 @@ function setPatientActivity(signing) {
 
 function onEvent(event) {
   if (!event || typeof event !== "object") return;
+  if (event.from === "patient") notePatient();
   try {
     if (event.type === "message") onMessage(event);
     else if (event.type === "status") onStatus(event);
@@ -781,6 +800,10 @@ async function connect() {
     renderLink();
     console.info(`[SignBridge] joined room "${state.room}" (${state.channel.transport}).`);
     sendStatus("online");
+    // The room's earlier events arrive first; if the patient is not among them, show the code to scan.
+    setTimeout(() => {
+      if (!state.patientSeen) openInvite({ auto: true });
+    }, 700);
   } catch (error) {
     console.error("[SignBridge] the room could not be joined:", error);
     state.channel = null;
@@ -788,6 +811,53 @@ async function connect() {
     renderLink();
     showProblem("La connexion avec l'écran du patient n'a pas démarré : rechargez la page.");
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* The room's QR code                                                  */
+/* ------------------------------------------------------------------ */
+
+const INVITE_LOCAL_ONLY = "Ce code ne s'ouvre que sur cet ordinateur. Pour qu'un téléphone puisse le scanner, "
+  + "lancez le serveur avec --host 0.0.0.0, sur le même Wi-Fi que le téléphone.";
+
+/** Shows the QR code that opens the patient's screen in this room. */
+async function openInvite({ auto = false } = {}) {
+  state.inviteAuto = auto;
+  dom.inviteRoom.textContent = state.room;
+  dom.invite.hidden = false;
+  dom.inviteOpen.setAttribute("aria-expanded", "true");
+  dom.inviteClose.focus({ preventScroll: true });
+  try {
+    const [{ shareBase, joinUrl }, { qrSvg }] = await Promise.all([import("./lib/invite.js"), import("./lib/qr.js")]);
+    const { base, reachable } = await shareBase(location);
+    const url = joinUrl(base, "patient.html", state.room);
+    dom.inviteQr.innerHTML = qrSvg(url);
+    dom.inviteLink.href = url;
+    dom.inviteLink.textContent = url;
+    dom.inviteNote.textContent = INVITE_LOCAL_ONLY;
+    dom.inviteNote.hidden = reachable;
+  } catch (error) {
+    console.error("[SignBridge] the room's QR code could not be made:", error);
+    dom.inviteQr.textContent = "";
+    dom.inviteLink.href = `patient.html?room=${encodeURIComponent(state.room)}`;
+    dom.inviteLink.textContent = dom.inviteLink.href;
+    dom.inviteNote.textContent = "Le code QR n'a pas pu être affiché : ouvrez cette adresse sur l'écran du patient.";
+    dom.inviteNote.hidden = false;
+  }
+}
+
+function closeInvite() {
+  if (dom.invite.hidden) return;
+  dom.invite.hidden = true;
+  dom.inviteOpen.setAttribute("aria-expanded", "false");
+  if (!state.inviteAuto) dom.inviteOpen.focus({ preventScroll: true });
+}
+
+/** The patient's screen has joined: its code is no longer needed on screen. */
+function notePatient() {
+  if (state.patientSeen) return;
+  state.patientSeen = true;
+  if (state.inviteAuto) closeInvite();
 }
 
 /* ------------------------------------------------------------------ */
@@ -859,6 +929,15 @@ function bindControls() {
     state.voiceOn = !state.voiceOn;
     if (!state.voiceOn) stopVoices();
     renderVoice();
+  });
+
+  dom.inviteOpen.addEventListener("click", () => openInvite());
+  dom.inviteClose.addEventListener("click", closeInvite);
+  dom.invite.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeInvite();
+  });
+  dom.invite.addEventListener("click", (event) => {
+    if (event.target === dom.invite) closeInvite();   // a click beside the card
   });
 
   dom.newVisit.addEventListener("click", openConfirm);

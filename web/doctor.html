@@ -14,7 +14,7 @@
 
 <header class="bar">
   <p class="bar__brand"><img class="brand__logo" src="brand/logo-header.webp" alt="" width="72" height="44"><span class="brand">SignBridge</span></p>
-  <p class="bar__meta"><span id="room-name"></span> <span class="bar__link" id="link-status" aria-live="polite">Connexion…</span></p>
+  <p class="bar__meta"><span id="room-name"></span> <button type="button" class="linkbtn" id="btn-invite" aria-controls="invite">Code QR</button> <span class="bar__link" id="link-status" aria-live="polite">Connexion…</span></p>
   <div class="bar__actions">
     <div class="lang" id="lang" role="group" aria-label="Langue parlée par le médecin">
       <button type="button" class="lang__opt" data-lang="tn" aria-pressed="true">Tounsi</button>
@@ -31,6 +31,17 @@
   <div class="confirm__actions">
     <button type="button" class="btn btn--primary btn--small" id="btn-confirm">Effacer la conversation</button>
     <button type="button" class="btn btn--quiet btn--small" id="btn-cancel">Annuler</button>
+  </div>
+</div>
+
+<div class="invite" id="invite" role="dialog" aria-modal="true" aria-labelledby="invite-title" hidden>
+  <div class="invite__card">
+    <h2 class="invite__title" id="invite-title">Salle <span id="invite-room"></span></h2>
+    <p class="invite__lead">Le patient scanne ce code avec l'appareil photo de son téléphone : il arrive dans cette salle.</p>
+    <div class="invite__qr" id="invite-qr" role="img" aria-label="Code QR de la salle"></div>
+    <p class="invite__link"><a id="invite-link" href="patient.html"></a></p>
+    <p class="invite__note" id="invite-note" hidden></p>
+    <button type="button" class="btn btn--quiet btn--small" id="btn-invite-close">Fermer</button>
   </div>
 </div>
 

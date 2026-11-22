@@ -16,11 +16,11 @@
   <iframe class="split__pane" id="pane-doctor" title="Écran du médecin" allow="camera; microphone; autoplay"></iframe>
   <noscript><p class="noscript">Cette page a besoin de JavaScript. Activez-le, puis rechargez la page.</p></noscript>
   <script>
-    // Both panes join the room named in ?room= (default "demo"), checked like the relay checks it.
+    // Both panes join the room named in ?room=, or a new room (four digits), checked like the relay checks it.
     (function () {
       var asked = new URLSearchParams(location.search).get("room");
-      var room = asked && /^[A-Za-z0-9_-]{1,32}$/.test(asked) ? asked : "demo";
-      if (asked && room !== asked) console.warn("[SignBridge] room name not allowed, using \"demo\":", asked);
+      var room = asked && /^[A-Za-z0-9_-]{1,32}$/.test(asked) ? asked : String(1000 + Math.floor(Math.random() * 9000));
+      if (room !== asked) history.replaceState(null, "", "?room=" + room);
       var query = "?room=" + encodeURIComponent(room);
       document.getElementById("pane-patient").src = "patient.html" + query;
       document.getElementById("pane-doctor").src = "doctor.html" + query;

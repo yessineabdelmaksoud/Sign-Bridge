@@ -8,7 +8,7 @@ This extends `web/CONTRACT.md` (data shapes, the tracker, the recogniser and the
 - **Doctor screen**: the doctor's computer, no camera. Patient messages arrive as a written French sentence, read aloud by the browser. The doctor answers by typing, by dictating, or with a ready-made question; the screen shows in advance which signs the patient will see.
 - **One laptop for a demo**: `split.html` shows both screens side by side.
 
-Both screens join a *room* (`?room=<name>`, default `demo`). Everything sent in a room reaches both screens at once.
+Both screens join a *room* (`?room=<name>`). Everything sent in a room reaches both screens at once. The doctor's screen opened without a room makes one (four digits) and shows its QR code (`lib/invite.js`, `lib/qr.js`); the patient scans it with the phone's camera and arrives in the same room. The patient's screen without a room asks the patient to scan that code, or opens a room itself and shows a code for the doctor's phone.
 
 ## Signs shown as a stick figure (decided)
 
@@ -65,6 +65,7 @@ Every event is a JSON object. Three types:
 Python standard library only. `ThreadingHTTPServer` is already used.
 
 - `GET /relay/ping` → `200 {"ok": true}`.
+- `GET /relay/address` → `{"ok": true, "urls": [...]}`: how another device on the network reaches this server (empty when it listens on this computer only). The QR code uses it when the page itself is opened on `localhost`.
 - `GET /relay/events?room=R` → `text/event-stream`. On connect it first sends every stored event of room R, in order, then each new event as it happens. Format: `data: <json>\n\n`. A comment line `: ping\n\n` every 15 seconds keeps the connection open.
 - `POST /relay/send?room=R`, body one JSON event → `message`: add `id` (if missing) and `ts` (milliseconds), store it (the last 200 per room, in memory only), pass it on. `status`: pass it on, do not store. `clear`: empty the room's store, store and pass on the `clear`. Answer `200 {"ok": true, "id": ...}`.
 - Validation: room matches `[A-Za-z0-9_-]{1,32}`, body at most 16 KB, `type` one of the three, `from` one of the two where required; otherwise `400` with a short reason.
@@ -139,5 +140,5 @@ export function dictation({ lang = "fr-FR", onText, onState }) // -> { supported
 
 ## Landing and split view
 
-- `index.html`: the name, one sentence on what it does, a room field (default `demo`), and three buttons: **Écran du patient**, **Écran du médecin**, **Les deux sur cet écran**.
+- `index.html`: the logo and name, what it does, how a room is joined (by QR code), and three links: **Écran du médecin : ouvrir une salle**, **Écran du patient**, **Les deux sur cet écran** (a new room).
 - `split.html?room=R`: the two screens side by side in iframes (`allow="camera; microphone; autoplay"`), patient on the left.

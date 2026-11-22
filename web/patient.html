@@ -13,12 +13,45 @@
 <body class="screen screen--patient">
 
 <header class="bar">
-  <p class="bar__brand"><img class="brand__logo" src="brand/logo-header.webp" alt="" width="72" height="44"><span class="brand">SignBridge</span> <span class="bar__room" id="room-name"></span></p>
+  <p class="bar__brand"><img class="brand__logo" src="brand/logo-header.webp" alt="" width="72" height="44"><span class="brand">SignBridge</span> <span class="bar__room" id="room-name"></span>
+    <button type="button" class="linkbtn" id="btn-invite" aria-controls="invite" hidden>Code QR</button></p>
   <p class="bar__link bi bi--end" id="link-status" aria-live="polite">
     <span class="ar" lang="ar" dir="rtl">جارٍ الاتصال</span>
     <span>Connexion…</span>
   </p>
 </header>
+
+<!-- Opened without a room: the patient joins one by scanning the doctor's code. -->
+<section class="scan" id="scan" hidden aria-labelledby="scan-title">
+  <div class="scan__card">
+    <h1 class="scan__title bi" id="scan-title">
+      <span class="ar" lang="ar" dir="rtl">امسح رمز QR الموجود على شاشة الطبيب</span>
+      <span>Scannez le code QR de l'écran du médecin</span>
+    </h1>
+    <p class="scan__lead bi">
+      <span class="ar" lang="ar" dir="rtl">بكاميرا هاتفك</span>
+      <span>avec l'appareil photo de votre téléphone</span>
+    </p>
+    <button type="button" class="btn btn--quiet scan__here bi" id="btn-room-here">
+      <span class="ar" lang="ar" dir="rtl">افتح غرفة على هذه الشاشة</span>
+      <span>Ouvrir une salle sur cet écran</span>
+    </button>
+  </div>
+</section>
+
+<div class="invite" id="invite" role="dialog" aria-modal="true" aria-labelledby="invite-title" hidden>
+  <div class="invite__card">
+    <h2 class="invite__title" id="invite-title">Salle <span id="invite-room"></span></h2>
+    <p class="invite__lead">
+      <span class="ar" lang="ar" dir="rtl">يمسح الطبيب هذا الرمز بهاتفه</span>
+      Le médecin scanne ce code avec son téléphone : il arrive dans cette salle.
+    </p>
+    <div class="invite__qr" id="invite-qr" role="img" aria-label="Code QR de la salle"></div>
+    <p class="invite__link"><a id="invite-link" href="doctor.html"></a></p>
+    <p class="invite__note" id="invite-note" hidden></p>
+    <button type="button" class="btn btn--quiet btn--small" id="btn-invite-close">Fermer</button>
+  </div>
+</div>
 
 <main class="patient">
 

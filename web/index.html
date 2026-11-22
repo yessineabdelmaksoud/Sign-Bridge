@@ -17,23 +17,13 @@
   <h1 class="landing__name">SignBridge</h1>
   <p class="landing__lead">Un patient sourd signe, le médecin lit et entend sa phrase en tounsi ou en français ; le médecin écrit ou dicte, le patient lit la réponse et voit les signes.</p>
 
-  <!-- A plain GET form: each button opens its page with ?room=..., with or without JavaScript. -->
-  <form class="landing__form" action="patient.html" method="get">
-    <label class="field">
-      <span class="field__label">Salle</span>
-      <input class="field__input" name="room" value="demo" required maxlength="32"
-             pattern="[A-Za-z0-9_\-]{1,32}" autocomplete="off" spellcheck="false"
-             title="Lettres sans accent, chiffres, tiret ou tiret bas : 32 caractères au plus."
-             aria-describedby="room-hint">
-      <span class="field__hint" id="room-hint">Le patient et le médecin doivent choisir la même salle.</span>
-    </label>
+  <p class="landing__how">Le médecin ouvre une salle : un code QR s'affiche. Le patient le scanne avec l'appareil photo de son téléphone et arrive dans la même salle.</p>
 
-    <div class="landing__choices">
-      <button class="btn btn--primary btn--wide" type="submit" formaction="patient.html">Écran du patient</button>
-      <button class="btn btn--primary btn--wide" type="submit" formaction="doctor.html">Écran du médecin</button>
-      <button class="btn btn--quiet btn--wide" type="submit" formaction="split.html">Les deux sur cet écran</button>
-    </div>
-  </form>
+  <div class="landing__choices">
+    <a class="btn btn--primary btn--wide" href="doctor.html">Écran du médecin : ouvrir une salle</a>
+    <a class="btn btn--primary btn--wide" href="patient.html">Écran du patient</a>
+    <a class="btn btn--quiet btn--wide" href="split.html">Les deux sur cet écran</a>
+  </div>
 
   <p class="landing__signs"><a href="signs.html">Voir les signes et lesquels la caméra reconnaît</a></p>
 
