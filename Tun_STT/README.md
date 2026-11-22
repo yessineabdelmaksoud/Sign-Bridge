@@ -1,5 +1,7 @@
 # 🎧 Tunisian Speech to Text (Tun_STT)
 
+> **Status.** The fine-tuned Whisper model in the notebook scored a 62% word error rate on its test split, so it is an experiment, not a usable transcriber. The demo pages load a Vosk model instead. The bad-word filter is off by default: its list is built from whole abusive sentences, so it also censors ordinary words.
+
 This module provides high-accuracy transcription for the Tunisian Dialect using OpenAI's Whisper model, with an integrated **Tunisian bad-word filter** for safe output.
 
 ## ⚙️ Technical Core: OpenAI Whisper

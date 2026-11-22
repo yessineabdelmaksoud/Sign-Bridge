@@ -1,5 +1,7 @@
 # 🖐️ Tunisian Sign to Text (SiTT)
 
+> **Status.** `tunisl_v4` recognises 55 signs with one hand. Its reported 95.7% accuracy comes from overlapping windows of the same recordings split at random between training and test, so it does not measure accuracy on new signers. The health sign model described in the main README is scored on held-out clips.
+
 This module implements real-time recognition of Tunisian Sign Language (TSL) using computer vision and deep temporal modeling.
 
 ## 🧠 Technical Approach
@@ -21,7 +23,7 @@ Sign language is inherently temporal. A single static frame is often ambiguous.
 The core classification model uses a **Temporal Attention Mechanism** implemented in Keras.
 
 - **Rationale**: Not all frames in a 16-frame window are equally important. Some frames capture the "core" of the sign (the target pose), while others are transitional. The attention layer allows the model to "focus" on the most discriminative frames.
-- **Backend**: The model is trained on a custom TSL dataset containing 100+ common Tunisian signs across categories like Family, Transport, and Destinations.
+- **Backend**: The model is trained on a custom TSL dataset containing 55 everyday Tunisian signs across categories like Family, Transport, and Destinations.
 
 ---
 

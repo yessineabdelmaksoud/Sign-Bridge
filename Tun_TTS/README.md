@@ -1,5 +1,7 @@
 # 🗣️ Tunisian Text to Speech (Tun_TTS)
 
+> **Status.** There is no fine-tuned Tunisian voice in this repository yet: the fine-tuning cells in `test.ipynb` end in errors, and `Tun_TTS.ipynb` stops at the baseline test. The demo's Text to Speech page calls the ElevenLabs API.
+
 This module provides high-quality voice synthesis for Tunisian Darija, capable of handling local prosody, expressions, and frequent code-switching with French.
 
 ## 🔬 Scientific Approach

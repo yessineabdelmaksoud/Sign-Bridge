@@ -22,6 +22,7 @@ streamlit run app.py
 | 3 | **Sign Recognition** | `pages/3_Sign_to_Text.py` | Live webcam feed for real-time Tunisian sign detection. |
 | 4 | **Avatar Synthesis** | `pages/4_Text_to_Sign.py` | Enter text (e.g., "3aslema") to see the neon skeleton avatar perform the sign. |
 | 5 | **Conversation Bridge** | `pages/5_Conversation_Bridge.py` | A unified interface for bidirectional deaf ↔ hearing interaction. |
+| 6 | **Consultation** | `pages/6_Consultation.py` | Guided consultation for a deaf patient: answers are signed or tapped, confirmed, and summarised for the doctor. Works offline. |
 
 ---
 
@@ -55,4 +56,4 @@ pip install -r requirements.txt
 ```
 
 > [!NOTE]
-> The Whisper-TTS model (~542 MB) is **auto-downloaded** from [HuggingFace](https://huggingface.co/Sali7a8603/Tunisian_STT) on first use. Make sure the other trained models from the **TTS** and **SiTT** notebooks have been exported and placed in the expected paths before launching the demo. See the [main README](../README.md) for full setup instructions.
+> The speech-to-text model (~542 MB; a Vosk model, despite the "Whisper" file names) is **auto-downloaded** from [HuggingFace](https://huggingface.co/Sali7a8603/Tunisian_STT) on first use. Make sure the other trained models from the **TTS** and **SiTT** notebooks have been exported and placed in the expected paths before launching the demo. See the [main README](../README.md) for full setup instructions.
