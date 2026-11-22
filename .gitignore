@@ -5,3 +5,5 @@ __pycache__/
 Demo/model/
 data/
 .pytest_cache/
+.claude/
+.superpowers/

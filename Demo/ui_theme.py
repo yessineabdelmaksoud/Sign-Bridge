@@ -7,6 +7,7 @@ PAGE_LINKS = [
     ("pages/3_Sign_to_Text.py", "Sign to Text", "🖐️"),
     ("pages/4_Text_to_Sign.py", "Text to Sign", "🤟"),
     ("pages/5_Conversation_Bridge.py", "Conversation Bridge", "💬"),
+    ("pages/6_Consultation.py", "Consultation", "🩺"),
 ]
 
 
