@@ -1,4 +1,4 @@
-"""Replay held-out SWL-LSE clips through the same path the camera uses.
+"""Replay held-out SWL-LSE clips through the same capture logic the live screen uses.
 
 Each raw clip (rest frames included) is pushed frame by frame into the capture
 logic, and whatever sign it cuts out goes to the shipped recogniser, narrowed
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-from consultation.camera import ClipSink
+from consultation.capture import SignCapture
 from consultation.flow import SIGN_SETS
 from consultation.landmarks import empty_frame
 from consultation.recognizer import SignRecognizer
@@ -26,11 +26,14 @@ from training.swl_convert import read_annotations, select_ids
 
 def replay(raw: np.ndarray, fps: float = 30.0):
     """The sign the capture logic cuts out of a raw clip, or None."""
-    sink = ClipSink()
+    capture = SignCapture()
     frames = list(raw) + [empty_frame()] * 12   # the hands drop out of view at the end
+    found = None
     for index, frame in enumerate(frames):
-        sink.push(frame, index / fps)
-    return sink.take()
+        clip = capture.push(frame, index / fps)
+        if clip is not None:
+            found = clip   # keep the last finished sign, as the live screen would show it
+    return found
 
 
 def main() -> None:
