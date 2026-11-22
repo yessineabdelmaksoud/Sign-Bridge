@@ -16,9 +16,17 @@ and doctor screens of a room:
     POST /relay/send?room=R       -> one JSON event; answers {"ok": true, "id": ...}
 
 Events live in memory only (the last 200 per room); nothing is written to disk.
-Standard library only.
+
+Tunisian speech for the doctor screen (web/speech_service.py), when set up:
+
+    GET  /speech/status           -> {"ok": true, "stt": bool, "tts": bool}
+    POST /speech/stt              -> 16-bit mono WAV, at most a minute; answers {"ok": true, "text": ...}
+    POST /speech/tts              -> {"text": ...}; answers audio/mpeg
+
+Standard library only (dictation also needs `pip install vosk` and the model).
 """
 import argparse
+import importlib.util
 import json
 import os
 import queue
@@ -66,6 +74,18 @@ MIME_TYPES = {
 
 _RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 UNSATISFIABLE = object()
+
+
+def _load_speech_service():
+    spec = importlib.util.spec_from_file_location("signbridge_speech_service", ROOT / "speech_service.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+speech_service = _load_speech_service()
+MAX_AUDIO = 60 * 16000 * 2 + 4096   # a minute of 16 kHz, 16-bit mono WAV
+MAX_SPEECH_TEXT = 4096              # bytes of JSON for one sentence to read aloud
 
 
 def parse_range(header: str, size: int):
@@ -239,6 +259,12 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(HTTPStatus.METHOD_NOT_ALLOWED, {"ok": False, "error": "use POST"}, allow="POST")
         elif path.startswith("/relay/"):
             self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown relay path"})
+        elif path == "/speech/status":
+            self._json(HTTPStatus.OK, {"ok": True, **self.server.speech.status()})
+        elif path in ("/speech/stt", "/speech/tts"):
+            self._json(HTTPStatus.METHOD_NOT_ALLOWED, {"ok": False, "error": "use POST"}, allow="POST")
+        elif path.startswith("/speech/"):
+            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown speech path"})
         else:
             super().do_GET()
 
@@ -252,8 +278,67 @@ class Handler(SimpleHTTPRequestHandler):
         elif path.startswith("/relay/"):
             self._discard_body()
             self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown relay path"})
+        elif path == "/speech/stt":
+            self._speech(self._transcribe, MAX_AUDIO)
+        elif path == "/speech/tts":
+            self._speech(self._synthesize, MAX_SPEECH_TEXT)
+        elif path == "/speech/status":
+            self._discard_body()
+            self._json(HTTPStatus.METHOD_NOT_ALLOWED, {"ok": False, "error": "use GET"}, allow="GET")
+        elif path.startswith("/speech/"):
+            self._discard_body()
+            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown speech path"})
         else:
             self.send_error(HTTPStatus.NOT_IMPLEMENTED, "Unsupported method ('POST')")
+
+    # speech endpoints (web/speech_service.py)
+
+    def _speech(self, action, limit):
+        try:
+            length = self._content_length()
+        except BadRequest as error:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(error)})
+            return
+        if length > limit:
+            self._skip_large(length)
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "too-long"})
+            return
+        body = self.rfile.read(length)
+        try:
+            action(body)
+        except speech_service.SpeechError as error:
+            self._json(error.status, {"ok": False, "error": error.code})
+        except Exception as error:  # a broken model or an unexpected answer: say so, keep serving
+            self.log_error("speech failed: %r", error)
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"ok": False, "error": "failed"})
+
+    def _transcribe(self, body: bytes):
+        self._json(HTTPStatus.OK, {"ok": True, "text": self.server.speech.transcribe(body)})
+
+    def _synthesize(self, body: bytes):
+        try:
+            text = json.loads(body.decode("utf-8")).get("text")
+        except (UnicodeDecodeError, ValueError, AttributeError):
+            text = None
+        if not isinstance(text, str):
+            raise speech_service.SpeechError("bad-text", 400)
+        audio = self.server.speech.synthesize(text)
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "audio/mpeg")
+        self.send_header("Content-Length", str(len(audio)))
+        self.end_headers()
+        self.wfile.write(audio)
+
+    def _skip_large(self, length: int):
+        """Drop a too-long recording (up to 16 MB) so the refusal still reaches the browser."""
+        if length > 16 * 1024 * 1024:
+            self.close_connection = True
+            return
+        while length > 0:
+            chunk = self.rfile.read(min(256 * 1024, length))
+            if not chunk:
+                break
+            length -= len(chunk)
 
     # relay endpoints
 
@@ -444,8 +529,9 @@ class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, speech=None, **kwargs):
         self.relay = Relay()
+        self.speech = speech if speech is not None else speech_service.from_environment()
         super().__init__(*args, **kwargs)
 
     def server_close(self):
@@ -453,9 +539,12 @@ class Server(ThreadingHTTPServer):
         super().server_close()
 
 
-def make_server(host: str = HOST, port: int = DEFAULT_PORT, directory=ROOT) -> Server:
-    """A server for web/ with a fresh relay; port 0 picks a free port."""
-    return Server((host, port), partial(Handler, directory=str(directory)))
+def make_server(host: str = HOST, port: int = DEFAULT_PORT, directory=ROOT, speech=None) -> Server:
+    """A server for web/ with a fresh relay; port 0 picks a free port.
+
+    `speech` answers /speech/ (web/speech_service.py); by default it is read from
+    the environment and the repository's .env file."""
+    return Server((host, port), partial(Handler, directory=str(directory)), speech=speech)
 
 
 def parse_args(argv=None):
@@ -466,14 +555,34 @@ def parse_args(argv=None):
         default=HOST,
         help=f"address to listen on (default {HOST}, this computer only; 0.0.0.0 for the local network)",
     )
+    parser.add_argument("--stt-model", default=None,
+                        help="folder of the Tunisian dictation model (default data/tunisian_stt)")
     return parser.parse_args(argv)
+
+
+def describe_speech(speech) -> list:
+    """One line each on Tunisian dictation and voice, for the console."""
+    status = speech.status()
+    lines = [
+        "Tunisian dictation: on this computer (Vosk)." if status["stt"] else
+        "Tunisian dictation: model not found, the browser's dictation is used "
+        "(python3 web/speech_service.py download, and pip install vosk).",
+        "Tunisian voice: ElevenLabs (the patient's sentences are sent to ElevenLabs)." if status["tts"] else
+        "Tunisian voice: no ELEVENLABS_API_KEY, the browser's voice is used.",
+    ]
+    return lines
 
 
 def main() -> None:
     args = parse_args()
-    server = make_server(args.host, args.port)
+    speech = speech_service.from_environment(stt_model=args.stt_model)
+    server = make_server(args.host, args.port, speech=speech)
     host, port = server.server_address[:2]
     print(f"Serving {ROOT} at http://{host}:{port}/  (Ctrl+C to stop)", flush=True)
+    for line in describe_speech(speech):
+        print(line, flush=True)
+    if speech.transcriber.available:
+        threading.Thread(target=speech.transcriber.warm_up, daemon=True).start()
     if host not in ("127.0.0.1", "localhost", "::1"):
         print(
             "Other devices on this network can open this computer's address on that port. "
