@@ -173,8 +173,9 @@ export class SignAvatar {
       const sign = this.#poses.signs.get(code);
       if (!sign || !sign.frames.length) continue;
       if (segments.length) t += GAP_SECONDS;
-      const duration = sign.frames.length / fps;
-      segments.push({ code, sign, start: t, end: t + duration, index: segments.length });
+      const rate = sign.fps || fps;   // a sign may carry its own frame rate
+      const duration = sign.frames.length / rate;
+      segments.push({ code, sign, rate, start: t, end: t + duration, index: segments.length });
       t += duration;
     }
     if (!segments.length) {
@@ -206,7 +207,7 @@ export class SignAvatar {
             announced = segment.index;
             onSign?.(segment.code, segment.index);
           }
-          frame = frameAt(segment.sign, elapsed - segment.start, fps);
+          frame = frameAt(segment.sign, elapsed - segment.start, segment.rate);
         }
         this.#draw(frame);
         this.#tick = this.#time.schedule(step);

@@ -18,6 +18,10 @@ const ACTIVITY_TIMEOUT_MS = 15000;   // a "signing" the patient never ended fade
 const MAX_MESSAGES = 200;
 
 const QUESTIONS = [
+  "Bonjour, comment allez-vous ?",
+  "Bienvenue.",
+  "Oui.",
+  "Non.",
   "Avez-vous de la fièvre ?",
   "Avez-vous mal à la tête ?",
   "Toussez-vous ?",
@@ -28,6 +32,11 @@ const QUESTIONS = [
   "Avez-vous une allergie ?",
   "Prenez ce médicament.",
   "Revenez pour un rendez-vous.",
+  "Revenez jeudi.",
+  "Allez à l'hôpital aujourd'hui.",
+  "Allez au dispensaire.",
+  "Votre famille peut vous aider.",
+  "Voulez-vous que je vous l'écrive ?",
 ];
 
 const LINK_TEXT = {

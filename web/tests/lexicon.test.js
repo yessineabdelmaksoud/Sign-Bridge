@@ -187,3 +187,44 @@ test("a full doctor sentence", () => {
     ["FIEBRE2", "TOSER", "FARMACIA", "URGENTE"],
   );
 });
+
+// --- Tunisian everyday signs -----------------------------------------------------------
+
+import { readFileSync } from "node:fs";
+
+const TUNISIAN = JSON.parse(readFileSync(new URL("../../training/tunisian_vocab.json", import.meta.url), "utf8"))
+  .map(({ code, fr, ar }) => ({ code, group: "everyday", fr, ar }));
+const ALL = [...JSON.parse(readFileSync(new URL("../data/signs.json", import.meta.url), "utf8")).signs
+  .filter((s) => !s.code.startsWith("TN_")), ...TUNISIAN];
+
+test("everyday signs keep their place in the sentence", () => {
+  const out = signsToSentence(["TN_3ASLEMA", "ENFERMO", "FIEBRE2", "TN_SBITAR"], ALL);
+  assert.equal(out.fr, "Bonjour. Je suis malade. J'ai de la fièvre. L'hôpital.");
+  assert.ok(out.ar.length > 0);
+});
+
+test("every Tunisian sign has a written sentence in both languages", () => {
+  const spoken = { TN_OM: "Ma mère.", TN_SBITAR: "L'hôpital.", TN_N3AWNEK: "J'ai besoin d'aide.", TN_T7EB: "Je veux." };
+  for (const sign of TUNISIAN) {
+    const out = signsToSentence([sign.code], ALL);
+    assert.ok(out.fr.endsWith(".") && out.ar.length > 1, `${sign.code}: ${out.fr} / ${out.ar}`);
+    if (spoken[sign.code]) assert.equal(out.fr, spoken[sign.code]);
+  }
+});
+
+test("a yes, a no and a day make short answers", () => {
+  assert.equal(signsToSentence(["TN_OUI"], ALL).fr, "Oui.");
+  assert.equal(signsToSentence(["TN_NON", "FIEBRE2"], ALL).fr, "Non. J'ai de la fièvre.");
+  assert.equal(signsToSentence(["TN_5MIS"], ALL).fr, "Jeudi.");
+});
+
+test("a doctor's everyday sentences find the Tunisian signs", () => {
+  assert.deepEqual(textToSigns("Bonjour, comment allez-vous ?", ALL), ["TN_3ASLEMA", "TN_LABES"]);
+  assert.deepEqual(textToSigns("Allez à l'hôpital aujourd'hui.", ALL), ["TN_SBITAR", "TN_LYOUM"]);
+  assert.deepEqual(textToSigns("Revenez jeudi avec votre mère.", ALL), ["TN_5MIS", "TN_OM"]);
+  assert.deepEqual(textToSigns("Voulez-vous de l'aide ?", ALL), ["TN_T7EB", "TN_N3AWNEK"]);
+  assert.deepEqual(textToSigns("Allez au centre de santé.", ALL), ["TN_MOSTAWSAF"]);
+  assert.deepEqual(textToSigns("Votre sœur a de la fièvre ?", ALL), ["TN_O5T", "FIEBRE2"]);
+  assert.deepEqual(textToSigns("Oui, d'accord.", ALL), ["TN_OUI"]);
+  assert.deepEqual(textToSigns("Voulez-vous que je vous l'écrive ?", ALL), ["TN_T7EB", "TN_NEKTEBLK"]);
+});

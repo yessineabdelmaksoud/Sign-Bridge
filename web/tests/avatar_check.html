@@ -18,7 +18,8 @@
 <script type="module">
 import { loadSignPoses, SignAvatar, drawFigure, layout } from "../lib/avatar.js";
 const poses = await loadSignPoses();
-const signs = (await (await fetch("../data/signs.json")).json()).signs;
+const names = new Map((await (await fetch("../data/signs.json")).json()).signs.map((s) => [s.code, s.fr]));
+const signs = [...poses.signs.keys()].map((code) => ({ code, fr: names.get(code) ?? code }));
 const grid = document.getElementById("grid");
 for (const sign of signs) {
   const fig = document.createElement("figure");

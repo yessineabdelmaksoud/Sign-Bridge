@@ -17,6 +17,39 @@ const SENTENCES = {
   EMBARAZO: { fr: "Je suis enceinte.", ar: "أنا حامل." },
 };
 
+// group "everyday": Tunisian Sign Language words, each its own short sentence, kept in
+// the place it was signed. Arabic is Tunisian, written in Arabic script: to be checked
+// by a native speaker.
+Object.assign(SENTENCES, {
+  TN_3ASLEMA: { fr: "Bonjour.", ar: "عسلامة." },
+  TN_MAR7BA: { fr: "Bienvenue.", ar: "مرحبا." },
+  TN_LABES: { fr: "Ça va.", ar: "لاباس." },
+  TN_OUI: { fr: "Oui.", ar: "إيه." },
+  TN_NON: { fr: "Non.", ar: "لا." },
+  TN_T7EB: { fr: "Je veux.", ar: "نحب." },
+  TN_N3AWNEK: { fr: "J'ai besoin d'aide.", ar: "نحب معاونة." },
+  TN_NEKTEBLK: { fr: "Je vais vous l'écrire.", ar: "نكتبلك." },
+  TN_ASSAM: { fr: "Mon nom.", ar: "إسمي." },
+  TN_LYOUM: { fr: "Aujourd'hui.", ar: "اليوم." },
+  TN_SE7A: { fr: "Ma santé.", ar: "صحتي." },
+  TN_SBITAR: { fr: "L'hôpital.", ar: "السبيطار." },
+  TN_MOSTAWSAF: { fr: "Le dispensaire.", ar: "المستوصف." },
+  TN_DAR: { fr: "La maison.", ar: "الدار." },
+  TN_OM: { fr: "Ma mère.", ar: "أمي." },
+  TN_BOU: { fr: "Mon père.", ar: "بابا." },
+  TN_3AYLA: { fr: "Ma famille.", ar: "عايلتي." },
+  TN_TFOL: { fr: "Mon enfant.", ar: "ولدي." },
+  TN_5OU: { fr: "Mon frère.", ar: "خويا." },
+  TN_O5T: { fr: "Ma sœur.", ar: "أختي." },
+  TN_THNIN: { fr: "Lundi.", ar: "الاثنين." },
+  TN_THLETH: { fr: "Mardi.", ar: "الثلاثاء." },
+  TN_ERB3A: { fr: "Mercredi.", ar: "الأربعاء." },
+  TN_5MIS: { fr: "Jeudi.", ar: "الخميس." },
+  TN_JOM3A: { fr: "Vendredi.", ar: "الجمعة." },
+  TN_SEBT: { fr: "Samedi.", ar: "السبت." },
+  TN_A7AD: { fr: "Dimanche.", ar: "الأحد." },
+});
+
 // group "symptom": phrases gathered into one sentence, "J'ai ..." / "عندي ..."
 const SYMPTOMS = {
   DOLOR: { fr: "mal", ar: "وجيعة" },
@@ -63,8 +96,10 @@ export function signsToSentence(codes, signs) {
     const sign = known.get(code);
     if (!sign || seen.has(code)) continue;
     seen.add(code);
-    if (!groups.has(sign.group)) groups.set(sign.group, []);
-    groups.get(sign.group).push(code);
+    // Everyday words (yes, no, hospital, a day...) keep the place where they were signed.
+    const key = sign.group === "everyday" ? `everyday:${code}` : sign.group;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(code);
   }
   const out = { fr: [], ar: [] };
   for (const [group, members] of groups) {
@@ -117,6 +152,26 @@ const SYNONYMS = {
   ASMA: ["asthme", "asthmatique"],
   CORAZON: ["cœur", "coeur", "cardiaque"],
   EMBARAZO: ["enceinte", "grossesse"],
+  TN_3ASLEMA: ["bonjour", "salut", "salam", "aslema", "bonsoir"],
+  TN_MAR7BA: ["bienvenue"],
+  TN_LABES: ["ça va", "comment allez-vous", "comment ça va", "vous allez bien"],
+  TN_OUI: ["oui", "d'accord"],
+  TN_NON: ["non"],
+  TN_T7EB: ["voulez", "voulez-vous", "veux", "vouloir", "voudriez", "souhaitez", "aimeriez"],
+  TN_N3AWNEK: ["aide", "aider", "aidez", "aiderai", "aiderons", "aidons", "aidera"],
+  TN_NEKTEBLK: ["écrire", "écris", "écrit", "écrive", "écrirai", "écrivez", "j'écris"],
+  TN_ASSAM: ["nom", "prénom", "appelez", "appelez-vous"],
+  TN_LYOUM: ["aujourd'hui"],
+  TN_SE7A: ["santé"],
+  TN_SBITAR: ["hôpital", "hôpitaux", "l'hôpital"],
+  TN_MOSTAWSAF: ["dispensaire", "clinique", "centre de santé"],
+  TN_DAR: ["maison", "domicile", "chez vous"],
+  TN_OM: ["mère", "maman"],
+  TN_BOU: ["père", "papa"],
+  TN_3AYLA: ["famille"],
+  TN_TFOL: ["enfant", "enfants", "bébé", "fils", "fille"],
+  TN_5OU: ["frère"],
+  TN_O5T: ["sœur", "soeur"],
 };
 
 /** Lower case, no accents, "œ" as "oe", then the words. */

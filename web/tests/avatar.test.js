@@ -130,3 +130,22 @@ test("a new play replaces the one in progress", async () => {
   await second;
   assert.deepEqual(seen, ["DOLOR", "ASMA"]);
 });
+
+test("a sign with its own frame rate is played at that rate", async () => {
+  const time = fakeTime();
+  const frames = Array.from({ length: 10 }, () => REST_FRAME);
+  const custom = { fps: 20, signs: new Map([["SLOW", { fps: 5, frames }], ["FAST", { frames }]]) };
+  const avatar = new SignAvatar(fakeCanvas(), custom, time);
+  let slowDone = false;
+  const slow = avatar.play(["SLOW"]).then(() => { slowDone = true; });
+  time.advance(1600);   // 10 frames at 5 fps last 2 s (+0.5 s hold): not over yet
+  await Promise.resolve();
+  assert.equal(slowDone, false);
+  time.advance(1200);
+  await slow;
+  let fastDone = false;
+  const fast = avatar.play(["FAST"]).then(() => { fastDone = true; });
+  time.advance(1100);   // 10 frames at 20 fps last 0.5 s (+0.5 s hold)
+  await fast;
+  assert.equal(fastDone, true);
+});
