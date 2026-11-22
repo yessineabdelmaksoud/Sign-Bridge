@@ -174,16 +174,115 @@ const SYNONYMS = {
   TN_O5T: ["sœur", "soeur"],
 };
 
-/** Lower case, no accents, "œ" as "oe", then the words. */
-function words(text) {
+// What a doctor says in Tunisian Arabic (Derja), typed or dictated, besides the
+// sign's Arabic name in signs.json. Spelling does not matter much: vowel marks,
+// hamza, ة/ه, "the" (ال، لل، بال...) and a leading "and" (و) are ignored when matching.
+// A NATIVE SPEAKER MUST CHECK THESE WORDS before real use.
+const SYNONYMS_TN = {
+  ENFERMO: ["مريض", "مريضة", "مرضان", "مرضانة", "مرض"],
+  CITA: ["موعد", "رنديفو", "رونديفو"],
+  FARMACIA: ["دواء", "دوا", "دوايات", "صيدلية", "فرمسية"],
+  URGENTE: ["مستعجل", "مستعجلة", "عاجل", "استعجالي", "ورجانس"],
+  DOLOR: ["وجيعة", "وجع", "يوجع", "يوجعك", "يوجعني", "توجع", "توجعك", "ألم"],
+  "DOLOR-DE-CABEZA": ["وجيعة في راسي", "وجيعة في راسك", "وجيعة في الراس", "يوجعك راسك", "يوجعني راسي",
+    "راسك يوجعك", "راسي يوجعني", "شقيقة"],
+  FIEBRE2: ["سخانة", "سخون", "سخونية", "حرارة"],
+  TOSER: ["كحة", "تكح", "يكح", "سعال"],
+  MAREO: ["دوخة", "دايخ", "دايخة", "تدوخ", "يدوخ"],
+  VOMITAR: ["ترجيع", "تقلب", "تستفرغ"],
+  DIARREA: ["سهال", "كرشك تجري"],
+  RESPIRAR: ["ضيق في النفس", "ضيقة نفس", "تتنفس", "التنفس"],
+  CANSADO2: ["تعبان", "تعبانة", "عيان", "عيانة", "فشلان", "فشلة"],
+  HERIDA: ["مجروح", "مجروحة", "جرحة"],
+  ALERGIA2: ["ألرجي"],
+  GRIPE: ["نزلة", "مبرد", "مبردة"],
+  INSOMNIO: ["ترقد", "ترقدش", "نرقدش", "رقاد", "نوم"],
+  ANSIEDAD: ["قلقان", "قلقانة", "متوتر", "متوترة", "خايف", "خايفة", "ستراس"],
+  DIABETES: ["السكر", "مريض بالسكر"],
+  ASMA: ["الربو"],
+  CORAZON: ["القلب", "قلبك"],
+  EMBARAZO: ["حامل", "بالحمل"],
+  TN_3ASLEMA: ["عسلامة", "عالسلامة", "السلام عليكم", "السلام", "أهلا", "صباح الخير", "مساء الخير"],
+  TN_MAR7BA: ["مرحبا بيك", "أهلا وسهلا", "مرحبا بيكم"],
+  TN_LABES: ["لاباس", "لا باس", "لباس", "شنحوالك", "شنية أحوالك", "كيفاش حالك", "بخير"],
+  TN_OUI: ["إيه", "نعم", "باهي"],
+  TN_NON: ["لا", "لالا"],
+  TN_T7EB: ["تحب", "نحب", "تحبش", "تحبي", "حاب", "حابب"],
+  TN_N3AWNEK: ["نعاونك", "تعاونك", "يعاونك", "نعاونوك", "معاونة", "عاونك", "نساعدك", "مساعدة"],
+  TN_NEKTEBLK: ["نكتبلك", "نكتبهولك", "نكتبهالك", "نكتب", "تكتب", "أكتب"],
+  TN_ASSAM: ["اسمك", "إسمك", "اسم"],
+  TN_LYOUM: ["اليوم", "ليوم"],
+  TN_SE7A: ["صحتك", "صحتي", "الصحة"],
+  TN_SBITAR: ["سبيطار", "مستشفى"],
+  TN_MOSTAWSAF: ["مستوصف", "مصحة", "كلينيك"],
+  TN_DAR: ["دارك", "حوش", "الحوش"],
+  TN_OM: ["أمك", "أمي", "يما", "والدتك"],
+  TN_BOU: ["بوك", "بابا", "باباك", "والدك"],
+  TN_3AYLA: ["عايلتك", "عايلتي", "عائلة", "عائلتك"],
+  TN_TFOL: ["طفلة", "ولد", "ولدك", "بنت", "بنتك", "صغار", "ولادك"],
+  TN_5OU: ["خوك", "خويا"],
+  TN_O5T: ["أختك", "أختي"],
+  TN_THNIN: ["نهار الاثنين", "يوم الاثنين", "الإثنين"],
+  TN_THLETH: ["نهار الثلاثاء", "يوم الثلاثاء"],
+  TN_ERB3A: ["نهار الأربعاء", "يوم الأربعاء", "الاربعاء"],
+  TN_5MIS: ["نهار الخميس", "يوم الخميس"],
+  TN_JOM3A: ["نهار الجمعة", "يوم الجمعة"],
+  TN_SEBT: ["نهار السبت", "يوم السبت"],
+  TN_A7AD: ["نهار الأحد", "يوم الأحد"],
+};
+
+const ARABIC_LETTER = /[ء-ي]/;
+
+/** True when `text` has Arabic letters (the doctor wrote or dictated in Tounsi). */
+export function isArabic(text) {
+  return ARABIC_LETTER.test(String(text ?? ""));
+}
+
+// "the", alone or after a preposition: و+ال, ب+ال, ف+ال, ك+ال, ل+ال (written لل), ال.
+const ARTICLES = ["وال", "بال", "فال", "كال", "لل", "ال"];
+// Words whose meaning changes without "the": اليوم today / يوم a day, الاثنين Monday / اثنين two,
+// الجمعة Friday / جمعة a week, الأحد Sunday / أحد anyone.
+const KEEP_ARTICLE = new Set(["يوم", "اثنين", "جمعه", "احد"]);
+
+/** An Arabic word without "the" (so السبيطار, للسبيطار and سبيطار are one word). */
+function withoutArticle(token) {
+  if (!ARABIC_LETTER.test(token)) return token;
+  for (const prefix of ARTICLES) {
+    if (token.startsWith(prefix) && token.length - prefix.length >= 2) {
+      const bare = token.slice(prefix.length);
+      return KEEP_ARTICLE.has(bare) ? `ال${bare}` : bare;
+    }
+  }
+  return token;
+}
+
+/**
+ * Lower case, no accents, "œ" as "oe"; in Arabic no vowel marks, no hamza seat,
+ * no stretching, ة as ه and ى as ي; then the words.
+ */
+function rawWords(text) {
   return String(text ?? "")
     .toLowerCase()
     .replace(/œ/g, "oe")
     .replace(/æ/g, "ae")
-    .normalize("NFD")
+    .normalize("NFD")                          // أ إ آ ؤ ئ become the bare letter + a mark
     .replace(/[̀-ͯ]/g, "")
-    .split(/[^a-z0-9]+/)
+    .replace(/[ً-ٰٟـ]/g, "")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .split(/[^a-z0-9ء-ي]+/)
     .filter(Boolean);
+}
+
+function words(text) {
+  return rawWords(text).map(withoutArticle);
+}
+
+/** The ways one word of the doctor's sentence can be read: as written, and without a leading و ("and"). */
+function readings(token) {
+  const out = [withoutArticle(token)];
+  if (token.length > 2 && token.startsWith("و")) out.push(withoutArticle(token.slice(1)));
+  return out;
 }
 
 const tables = new WeakMap();
@@ -204,25 +303,34 @@ function phraseTable(signs) {
     add(sign.fr, sign.code);
     for (const phrase of SYNONYMS[sign.code] ?? []) add(phrase, sign.code);
   }
+  for (const sign of signs || []) {
+    if (sign.ar) add(sign.ar, sign.code);
+    for (const phrase of SYNONYMS_TN[sign.code] ?? []) add(phrase, sign.code);
+  }
   for (const list of table.values()) list.sort((a, b) => b.words.length - a.words.length);
   if (signs) tables.set(signs, table);
   return table;
 }
 
 /**
- * The signs to show the patient for a doctor's sentence: whole words, case and
- * accents ignored, the longest phrase first ("mal à la tête" before "mal"),
- * each sign once, in order of appearance.
+ * The signs to show the patient for a doctor's sentence, in French or Tunisian
+ * Arabic: whole words, case, accents and Arabic spelling variants ignored, the
+ * longest phrase first ("mal à la tête" before "mal"), each sign once, in order
+ * of appearance.
  */
 export function textToSigns(text, signs) {
   const table = phraseTable(signs);
-  const tokens = words(text);
+  const tokens = rawWords(text).map(readings);
   const found = [];
   let i = 0;
   while (i < tokens.length) {
-    const match = (table.get(tokens[i]) ?? []).find((entry) =>
-      entry.words.every((word, k) => tokens[i + k] === word),
-    );
+    let match = null;
+    for (const first of tokens[i]) {
+      match = (table.get(first) ?? []).find((entry) =>
+        entry.words.every((word, k) => (k === 0 ? word === first : tokens[i + k]?.includes(word))),
+      );
+      if (match) break;
+    }
     if (match) {
       if (!found.includes(match.code)) found.push(match.code);
       i += match.words.length;
@@ -234,14 +342,16 @@ export function textToSigns(text, signs) {
 }
 
 /**
- * The words in a doctor's sentence that show this sign to the patient: the sign's
- * French name first, then its synonyms. An unknown code gives [].
+ * The words in a doctor's sentence that show this sign to the patient: in French
+ * ("fr", default) the sign's French name first, then its synonyms; in Tounsi ("tn")
+ * its Arabic name, then the Tunisian words. An unknown code gives [].
  */
-export function signWords(code, signs) {
+export function signWords(code, signs, lang = "fr") {
   const sign = byCode(signs).get(code);
   if (!sign) return [];
   const seen = new Set();
-  return [sign.fr, ...(SYNONYMS[code] ?? [])].filter((word) => {
+  const list = lang === "tn" ? [sign.ar, ...(SYNONYMS_TN[code] ?? [])] : [sign.fr, ...(SYNONYMS[code] ?? [])];
+  return list.filter((word) => {
     // "l'hôpital" and "j'écris" add nothing to "hôpital" and "écris": elided letters are ignored.
     const key = words(word).filter((token) => token.length > 1).join(" ");
     if (!key || seen.has(key)) return false;

@@ -3,7 +3,7 @@
 A deaf patient and a hearing doctor talk in real time, each on their own screen, without an interpreter.
 
 - **The patient signs.** Each sign the camera recognises becomes a word on the patient's screen. The patient builds a sentence from several signs, fixes or removes words, and sends it.
-- **The doctor reads and hears it** as a proper French sentence ("Je suis malade. J'ai de la fièvre et de la toux."), then answers by typing, dictating, or choosing a ready-made phrase.
+- **The doctor reads and hears it** as a proper sentence, in Tounsi ("أنا مريض. عندي سخانة وكحة.") or French ("Je suis malade. J'ai de la fièvre et de la toux."), then answers by typing, dictating in Tounsi or French, or choosing a ready-made phrase.
 - **The patient sees the answer** in large text, and the signs for it performed by a stick figure, one after another.
 
 Everything runs in the browser on one computer: the camera image is turned into body and hand points, and the sign model reads those points. No camera image is stored or sent anywhere.
@@ -35,7 +35,27 @@ Open http://localhost:8520 in Chrome or Edge, choose a room name, then:
 
 To let the doctor join from another device on the same network, start the server with `--host 0.0.0.0` and open `http://<laptop address>:8520/doctor.html?room=<room>` there. The patient screen must stay on `localhost` (browsers only give camera access on `localhost` or `https`).
 
-**The signs page.** http://localhost:8520/signs.html shows every sign as a stick figure you can play, says whether the camera recognises it, and lists the doctor's words that show it.
+**Tunisian speech (optional).** The doctor screen speaks Tounsi by default (the Tounsi / Français switch is at the top). It uses the Tunisian speech of the earlier demo when it is set up:
+
+- **Dictation in Tounsi**: the Tunisian Vosk model ([Sali7a8603/Tunisian_STT](https://huggingface.co/Sali7a8603/Tunisian_STT), Apache 2.0), run on this computer, so the doctor's voice never leaves it. About 540 MB to download, 1.4 GB on disk, 1.5 GB of memory; it loads in a few seconds when the server starts.
+
+```bash
+pip install vosk
+```
+
+```bash
+python3 web/speech_service.py download
+```
+
+- **The Tunisian voice**: ElevenLabs, voice `InB4o9iYj3MQ4HtGs2KV`. Put your key in a `.env` file at the repository root (it is never committed), then restart the server:
+
+```bash
+echo "ELEVENLABS_API_KEY=your-key" >> .env
+```
+
+Without them, the browser's Arabic dictation (Chrome, online) and Arabic voice are used; if the browser has no Arabic voice, the patient's messages are read in French. When it starts, `python3 web/serve.py` says which dictation and voice are in use, and the doctor screen says it under its buttons. `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` (default `eleven_multilingual_v2`) and `--stt-model` change the voice, the voice model and the dictation model.
+
+**The signs page.** http://localhost:8520/signs.html shows every sign as a stick figure you can play, says whether the camera recognises it, and lists the doctor's words that show it, in French and in Tounsi.
 
 **Diagnosing a sign.** Add `&debug=1` to the patient screen's address (`patient.html?room=demo&debug=1`): each attempt is listed with what was proposed, the next guesses with their percentages, and how many frames had a hand. If the shoulders are out of view, the screen asks the patient to step back.
 
@@ -46,8 +66,8 @@ To let the doctor join from another device on the same network, start the server
 | Step | Patient screen | Doctor screen |
 |---|---|---|
 | The patient signs "malade", lowers the hands, signs "fièvre" | Each recognised sign appears as a word; the last word offers the next two guesses as a correction | "Le patient signe…" |
-| The patient presses **Envoyer** | The sentence is sent | "Je suis malade. J'ai de la fièvre." appears and is read aloud |
-| The doctor types "Allez à l'hôpital aujourd'hui." | "Le médecin écrit…" | Below the field: the signs the patient will see (Hôpital, Aujourd'hui) |
+| The patient presses **Envoyer** | The sentence is sent | "أنا مريض. عندي سخانة." and "Je suis malade. J'ai de la fièvre." appear; the first is read aloud in Tounsi |
+| The doctor dictates "إمشي للسبيطار اليوم" (or types "Allez à l'hôpital aujourd'hui.") | "Le médecin écrit…" | Below the field: the signs the patient will see (Hôpital, Aujourd'hui) |
 | The doctor presses **Envoyer** | The text in large letters, and the stick figure signs Hôpital then Aujourd'hui | |
 
 ## Where AI is used, and where it is not
@@ -57,9 +77,11 @@ To let the doctor join from another device on the same network, start the server
 | Find the body and hands in the camera image | MediaPipe Holistic, in the browser | No rule can find a hand in pixels |
 | Recognise a sign | A small neural network on the body and hand points | Signs vary with the person, speed and angle |
 | Turn the patient's signs into a sentence | Fixed rules (`web/lib/lexicon.js`) | The vocabulary is closed; nothing needs generating |
-| Find the signs for the doctor's words | Word matching with synonyms | Predictable, and the doctor sees the result before sending |
+| Find the signs for the doctor's words | Word matching with synonyms, in French and Tounsi (Arabic spelling variants ignored) | Predictable, and the doctor sees the result before sending |
 | Show a sign to the patient | A stick figure replaying recorded movement (`web/lib/avatar.js`) | No video of a real person is shown |
-| Read aloud, dictation | The browser's speech services | Optional; dictation needs the browser's online speech service |
+| Dictation in Tounsi | The Tunisian Vosk (Kaldi) speech model, on the local server (`web/speech_service.py`) | Tunisian Arabic is poorly served by general speech services |
+| Reading the patient's sentence in Tounsi | The Tunisian ElevenLabs voice, through the local server | A natural Tunisian voice; optional |
+| French dictation and voice, and the fallback | The browser's speech services | Optional; browser dictation needs its online speech service |
 
 ## The signs
 
@@ -109,19 +131,25 @@ Metrics: `Demo/consultation/models/health_signs.json`.
 - **Similar signs get confused.** Toux and Asthme, or Malade and Allergie, move alike; the screen then offers both.
 - **It is not a diagnostic tool.** The sentence rules and the Arabic wording need review by a clinician and a native speaker.
 - **Not yet tested on a real webcam with a deaf signer.** Recognition was checked with recorded signs through the same path the camera uses.
+- **Tounsi dictation not yet tested with a Tunisian speaker here.** The whole path was checked (microphone, recording, the real model on the server, the words to signs), but with a test tone, not a voice. The Tunisian ready phrases and the Tounsi words that call each sign (`web/lib/lexicon.js`) need checking by a native speaker.
+- **The ElevenLabs voice was checked against a stand-in**, not the real service (no key here): the request (voice, model, Tunisian text) and the playback were verified; the voice itself depends on your ElevenLabs plan, and some voices need a paid plan.
 
 ## Privacy
 
 - The camera image is turned into body and hand points in memory, then dropped. No image or video is written or sent.
 - The relay between the two screens keeps the conversation in memory only, and forgets it when the server stops or the doctor starts a new consultation.
 - No name or identity is asked.
-- The only data that can leave the computer: the doctor's voice if dictation is used, and the text read aloud if the browser has no French voice installed. Both are labelled on the doctor's screen.
+- Tounsi dictation with the Vosk model stays on the computer: the recording is transcribed in memory by the local server and dropped.
+- What can leave the computer, each said on the doctor's screen:
+  - the patient's sentences, sent to ElevenLabs when the Tunisian voice is set up (the server keeps the audio of recent sentences in memory, so a sentence is sent once);
+  - the doctor's voice, when the browser's dictation is used (French, or Tounsi without the model);
+  - the text read aloud, when the browser's voice is an online one.
 
 ## Project layout
 
 | Path | What it is |
 |---|---|
-| `web/` | The app: `patient.html`, `doctor.html`, `split.html`, and `serve.py` (static server and relay) |
+| `web/` | The app: `patient.html`, `doctor.html`, `split.html`, `serve.py` (static server and relay) and `speech_service.py` (Tunisian dictation and voice) |
 | `web/lib/` | Tracker, features, capture, model, recogniser, lexicon, avatar, channel, speech |
 | `web/data/` | The sign list and the stick-figure movements |
 | `web/models/` | The sign model exported for the browser |

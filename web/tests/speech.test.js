@@ -240,3 +240,143 @@ test("dictation without callbacks does not throw", (t) => {
   made[0].onend({});
   d.stop();
 });
+
+// --- Tunisian speech through the local server (web/serve.py /speech/) ---------------
+
+import { downsample, encodeWav, serverDictation, speechServer } from "../lib/speech.js";
+
+test("downsample averages 48 kHz audio down to 16 kHz", () => {
+  const input = Float32Array.from({ length: 48 }, (_, i) => (i % 3 === 0 ? 0.3 : 0.6));
+  const output = downsample(input, 48000, 16000);
+  assert.equal(output.length, 16);
+  for (const value of output) assert.ok(Math.abs(value - 0.5) < 1e-6);
+  assert.equal(downsample(input, 16000, 16000), input);
+});
+
+test("encodeWav writes 16-bit mono PCM with a WAV header", () => {
+  const buffer = encodeWav(Float32Array.from([0, 1, -1, 0.5, 2]), 16000);
+  const view = new DataView(buffer);
+  const text = (offset, length) => String.fromCharCode(...new Uint8Array(buffer, offset, length));
+  assert.equal(buffer.byteLength, 44 + 5 * 2);
+  assert.equal(text(0, 4), "RIFF");
+  assert.equal(text(8, 8), "WAVEfmt ");
+  assert.equal(view.getUint16(20, true), 1);       // PCM
+  assert.equal(view.getUint16(22, true), 1);       // mono
+  assert.equal(view.getUint32(24, true), 16000);   // sample rate
+  assert.equal(view.getUint16(34, true), 16);      // bits
+  assert.equal(text(36, 4), "data");
+  assert.equal(view.getUint32(40, true), 10);
+  assert.deepEqual([0, 1, 2, 3, 4].map((k) => view.getInt16(44 + 2 * k, true)), [0, 32767, -32768, 16384, 32767]);
+});
+
+function fakeFetch(routes) {
+  const calls = [];
+  const fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    const answer = routes[url];
+    if (!answer) throw new TypeError("network down");
+    return {
+      ok: answer.status === undefined || answer.status < 400,
+      status: answer.status ?? 200,
+      json: async () => answer.json,
+      blob: async () => answer.blob,
+    };
+  };
+  return { fetch, calls };
+}
+
+test("speechServer reads what the server can do, and nothing when there is no server", async () => {
+  const { fetch } = fakeFetch({ "speech/status": { json: { ok: true, stt: true, tts: false } } });
+  assert.deepEqual(await speechServer(fetch).status(), { stt: true, tts: false });
+  assert.deepEqual(await speechServer(fakeFetch({}).fetch).status(), { stt: false, tts: false });
+});
+
+test("speechServer sends a recording and gets the text back", async () => {
+  const { fetch, calls } = fakeFetch({ "speech/stt": { json: { ok: true, text: "عسلامة لاباس" } } });
+  const wav = new Blob(["RIFF"], { type: "audio/wav" });
+  assert.equal(await speechServer(fetch).transcribe(wav), "عسلامة لاباس");
+  assert.equal(calls[0].options.method, "POST");
+  assert.equal(calls[0].options.body, wav);
+  assert.equal(calls[0].options.headers["Content-Type"], "audio/wav");
+});
+
+test("speechServer turns the server's refusals into error codes", async () => {
+  const server = speechServer(fakeFetch({
+    "speech/stt": { status: 503, json: { ok: false, error: "no-model" } },
+    "speech/tts": { status: 502, json: { ok: false, error: "paid-plan" } },
+  }).fetch);
+  await assert.rejects(server.transcribe(new Blob([])), { code: "no-model" });
+  await assert.rejects(server.synthesize("لا."), { code: "paid-plan" });
+  await assert.rejects(speechServer(fakeFetch({}).fetch).synthesize("لا."), { code: "network" });
+});
+
+test("speechServer asks for the voice of a sentence", async () => {
+  const mp3 = new Blob(["ID3"], { type: "audio/mpeg" });
+  const { fetch, calls } = fakeFetch({ "speech/tts": { blob: mp3 } });
+  assert.equal(await speechServer(fetch).synthesize("أنا مريض."), mp3);
+  assert.deepEqual(JSON.parse(calls[0].options.body), { text: "أنا مريض." });
+});
+
+/** A recorder that "hears" for as long as it runs. */
+function fakeRecorder({ failWith } = {}) {
+  const log = [];
+  return {
+    log,
+    create: () => ({
+      async start() {
+        log.push("start");
+        if (failWith) throw Object.assign(new Error(failWith), { name: failWith });
+      },
+      async stop() {
+        log.push("stop");
+        return new Blob(["RIFF"], { type: "audio/wav" });
+      },
+      cancel() {
+        log.push("cancel");
+      },
+    }),
+  };
+}
+
+test("serverDictation: listen, then transcribe when stopped", async () => {
+  const states = [];
+  const texts = [];
+  const recorder = fakeRecorder();
+  const dictation = serverDictation({
+    record: recorder.create,
+    transcribe: async () => "إمشي للسبيطار اليوم",
+    onText: (text, isFinal) => texts.push([text, isFinal]),
+    onState: (value, detail) => states.push(detail ? `${value}:${detail}` : value),
+  });
+  assert.equal(dictation.supported, true);
+  await dictation.start();
+  assert.deepEqual(states, ["listening"]);
+  await dictation.stop();
+  assert.deepEqual(states, ["listening", "working", "idle"]);
+  assert.deepEqual(texts, [["إمشي للسبيطار اليوم", true]]);
+  assert.deepEqual(recorder.log, ["start", "stop"]);
+});
+
+test("serverDictation says when nothing was heard, or the microphone is blocked", async () => {
+  const states = [];
+  const onState = (value, detail) => states.push(detail ? `${value}:${detail}` : value);
+  const quiet = serverDictation({ record: fakeRecorder().create, transcribe: async () => "  ", onState });
+  await quiet.start();
+  await quiet.stop();
+  assert.deepEqual(states, ["listening", "working", "error:no-speech", "idle"]);
+
+  states.length = 0;
+  const blocked = serverDictation({ record: fakeRecorder({ failWith: "NotAllowedError" }).create, transcribe: async () => "", onState });
+  await blocked.start();
+  assert.deepEqual(states, ["error:not-allowed", "idle"]);
+
+  states.length = 0;
+  const broken = serverDictation({
+    record: fakeRecorder().create,
+    transcribe: async () => { throw Object.assign(new Error("x"), { code: "no-model" }); },
+    onState,
+  });
+  await broken.start();
+  await broken.stop();
+  assert.deepEqual(states, ["listening", "working", "error:no-model", "idle"]);
+});

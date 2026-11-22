@@ -35,6 +35,7 @@
   .sign__state--yes { background: var(--green); color: var(--white); }
   .sign__state--no { background: var(--wall); color: var(--muted); }
   .sign__words { font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .sign__words-ar { font-family: var(--arabic); font-size: 14px; }
 </style>
 </head>
 <body class="signs">
@@ -83,7 +84,15 @@ for (const group of data.groups) {
     const state = card.querySelector(".sign__state");
     state.textContent = sign.weak ? "Montré seulement" : "Reconnu par la caméra";
     state.classList.add(sign.weak ? "sign__state--no" : "sign__state--yes");
-    card.querySelector(".sign__words").textContent = `Mots du médecin : ${signWords(sign.code, data.signs).join(", ")}`;
+    const wordsEl = card.querySelector(".sign__words");
+    wordsEl.textContent = `Mots du médecin : ${signWords(sign.code, data.signs).join(", ")}`;
+    const tounsi = signWords(sign.code, data.signs, "tn");
+    if (tounsi.length) {
+      wordsEl.append(document.createElement("br"), "En tounsi : ");
+      const ar = Object.assign(document.createElement("span"), { lang: "ar", dir: "rtl", textContent: tounsi.join("، ") });
+      ar.className = "sign__words-ar";
+      wordsEl.append(ar);
+    }
     grid.append(card);
     cards.push({ card, sign, section });
     // Each figure is created once it is on screen, then plays its sign when touched.

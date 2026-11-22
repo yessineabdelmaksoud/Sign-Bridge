@@ -19,6 +19,7 @@ const SIGNS_URL = "data/signs.json";
 const MODEL_URL = "models/health_signs.json";
 const DEFAULT_ROOM = "demo";
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
+const ARABIC_TEXT = /[ء-ي]/;     // the doctor wrote or dictated in Tounsi
 
 const HISTORY_SIZE = 4;          // messages kept in the conversation strip
 const NOTICE_MS = 2000;          // "Signe non reconnu" and "Envoyé" stay this long
@@ -1193,7 +1194,13 @@ function renderReplyCaption() {
 function renderReply() {
   const reply = state.reply;
   dom.reply.dataset.state = !reply ? "empty" : figureCodes(reply).length ? "signs" : "text";
-  dom.replyText.textContent = frenchSpaces(reply?.text);
+  // The doctor may write or dictate in Tounsi: Arabic is set right to left.
+  const text = String(reply?.text ?? "");
+  const inArabic = ARABIC_TEXT.test(text);
+  dom.replyText.textContent = inArabic ? text : frenchSpaces(text);
+  dom.replyText.lang = inArabic ? "ar" : "fr";
+  dom.replyText.dir = inArabic ? "rtl" : "ltr";
+  dom.replyText.classList.toggle("ar", inArabic);
   renderReplyCaption();
   // The figure's box only gets a size once it is shown.
   if (dom.reply.dataset.state === "signs") restFigure();
@@ -1227,7 +1234,9 @@ function renderHistory() {
         sentence.ar ? arabic(sentence.ar) : null,
         el("span", {}, frenchSpaces(event.text ?? sentence.fr)));
     } else {
-      text = el("span", { class: "history__text" }, el("span", {}, frenchSpaces(event.text)));
+      const said = String(event.text ?? "");
+      text = el("span", { class: "history__text" },
+        ARABIC_TEXT.test(said) ? arabic(said) : el("span", {}, frenchSpaces(said)));
     }
     return el("li", { class: `history__item history__item--${mine ? "patient" : "doctor"}` },
       bilingual(mine ? TEXT.me : TEXT.doctor, "history__who bi"),

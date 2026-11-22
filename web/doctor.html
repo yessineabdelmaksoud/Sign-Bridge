@@ -14,9 +14,13 @@
   <p class="bar__brand"><span class="brand">SignBridge</span></p>
   <p class="bar__meta"><span id="room-name"></span> <span class="bar__link" id="link-status" aria-live="polite">Connexion…</span></p>
   <div class="bar__actions">
+    <div class="lang" id="lang" role="group" aria-label="Langue parlée par le médecin">
+      <button type="button" class="lang__opt" data-lang="tn" aria-pressed="true">Tounsi</button>
+      <button type="button" class="lang__opt" data-lang="fr" aria-pressed="false">Français</button>
+    </div>
     <button type="button" class="btn btn--quiet btn--small" id="btn-voice" aria-pressed="true" aria-describedby="voice-note">Lecture à voix haute : activée</button>
     <button type="button" class="btn btn--quiet btn--small" id="btn-new">Nouvelle consultation</button>
-    <p class="bar__note" id="voice-note">La lecture à voix haute peut utiliser le service vocal du navigateur.</p>
+    <p class="bar__note" id="voice-note" aria-live="polite">La lecture à voix haute peut utiliser le service vocal du navigateur.</p>
   </div>
 </header>
 
@@ -45,7 +49,7 @@
   <form class="composer" id="composer" autocomplete="off">
     <label class="vh" for="field">Votre réponse au patient</label>
     <div class="composer__row">
-      <textarea class="composer__field" id="field" rows="2" placeholder="Écrivez votre réponse, puis Entrée"></textarea>
+      <textarea class="composer__field" id="field" rows="2" dir="auto" placeholder="Écrivez votre réponse, puis Entrée"></textarea>
       <button type="submit" class="btn btn--send" id="btn-send" disabled>Envoyer</button>
     </div>
     <p class="composer__signs" id="signs-preview" aria-live="polite"></p>

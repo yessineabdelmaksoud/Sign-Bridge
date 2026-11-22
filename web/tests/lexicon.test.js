@@ -242,3 +242,76 @@ test("signWords lists the doctor's words that show a sign, its name first", () =
     }
   }
 });
+
+// --- Tunisian Arabic (Derja), what the doctor says or dictates in Tounsi -------------
+
+// The doctor screen's Tunisian ready phrases (web/doctor.js) and the signs they show.
+const TOUNSI = [
+  ["عسلامة، لاباس؟", ["TN_3ASLEMA", "TN_LABES"]],
+  ["مرحبا بيك.", ["TN_MAR7BA"]],
+  ["إيه.", ["TN_OUI"]],
+  ["لا.", ["TN_NON"]],
+  ["عندك سخانة؟", ["FIEBRE2"]],
+  ["يوجعك راسك؟", ["DOLOR-DE-CABEZA"]],
+  ["عندك الكحة؟", ["TOSER"]],
+  ["تحس بالدوخة؟", ["MAREO"]],
+  ["عندك ضيق في النفس؟", ["RESPIRAR"]],
+  ["عندك السكر؟", ["DIABETES"]],
+  ["إنتي حامل؟", ["EMBARAZO"]],
+  ["عندك حساسية؟", ["ALERGIA2"]],
+  ["خوذ الدواء هذا.", ["FARMACIA"]],
+  ["إرجع في موعد آخر.", ["CITA"]],
+  ["إرجع نهار الخميس.", ["TN_5MIS"]],
+  ["إمشي للسبيطار اليوم.", ["TN_SBITAR", "TN_LYOUM"]],
+  ["إمشي للمستوصف.", ["TN_MOSTAWSAF"]],
+  ["عايلتك تنجم تعاونك.", ["TN_3AYLA", "TN_N3AWNEK"]],
+  ["تحب نكتبهولك؟", ["TN_T7EB", "TN_NEKTEBLK"]],
+];
+
+test("the doctor's Tunisian ready phrases find their signs", () => {
+  for (const [text, codes] of TOUNSI) assert.deepEqual(textToSigns(text, ALL), codes, text);
+});
+
+test("Tunisian words are found however dictation spells them", () => {
+  assert.deepEqual(textToSigns("عندك سخانه", ALL), ["FIEBRE2"]);                     // ة written ه
+  assert.deepEqual(textToSigns("امشي للسبيطار اليوم", ALL), ["TN_SBITAR", "TN_LYOUM"]); // no hamza
+  assert.deepEqual(textToSigns("سُخَانَة", ALL), ["FIEBRE2"]);                          // vowel marks
+  assert.deepEqual(textToSigns("ســخانة", ALL), ["FIEBRE2"]);                          // stretched letters
+  assert.deepEqual(textToSigns("الكحة والسخانة", ALL), ["TOSER", "FIEBRE2"]);          // "and the"
+  assert.deepEqual(textToSigns("كحة وسخانة", ALL), ["TOSER", "FIEBRE2"]);              // "and"
+});
+
+test("a word that starts with و keeps it", () => {
+  assert.deepEqual(textToSigns("عندي وجيعة", ALL), ["DOLOR"]);
+  assert.deepEqual(textToSigns("عندك وجيعة في راسك؟", ALL), ["DOLOR-DE-CABEZA"]);   // the longer phrase wins
+});
+
+test("the day and today stay apart", () => {
+  assert.deepEqual(textToSigns("إرجع يوم الخميس", ALL), ["TN_5MIS"]);
+  assert.deepEqual(textToSigns("خوذ الدواء كل يوم", ALL), ["FARMACIA"]);
+});
+
+test("French and Tunisian in one sentence", () => {
+  assert.deepEqual(textToSigns("Bonjour، عندك سخانة؟", ALL), ["TN_3ASLEMA", "FIEBRE2"]);
+  assert.deepEqual(textToSigns("خوذ le médicament", ALL), ["FARMACIA"]);
+});
+
+test("signWords in Tounsi: every word listed shows its sign", () => {
+  const { signWords } = LEXICON;
+  assert.ok(signWords("TN_SBITAR", ALL, "tn").includes("سبيطار"));
+  assert.ok(signWords("FIEBRE2", ALL, "tn").includes("سخانة"));
+  for (const sign of ALL) {
+    for (const word of signWords(sign.code, ALL, "tn")) {
+      assert.ok(textToSigns(word, ALL).includes(sign.code), `${word} -> ${sign.code}`);
+    }
+  }
+});
+
+test("isArabic tells Arabic script from Latin", () => {
+  const { isArabic } = LEXICON;
+  assert.equal(isArabic("لاباس"), true);
+  assert.equal(isArabic("Bonjour, لاباس ?"), true);
+  assert.equal(isArabic("Bonjour, comment allez-vous ?"), false);
+  assert.equal(isArabic(""), false);
+  assert.equal(isArabic(undefined), false);
+});
