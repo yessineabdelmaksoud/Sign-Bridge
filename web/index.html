@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#12508F">
   <title>SignBridge</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="brand/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="brand/favicon-48.png" sizes="48x48" type="image/png">
+  <link rel="apple-touch-icon" href="brand/icon-180.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="landing">
 
 <main class="landing__card">
+  <img class="landing__logo" src="brand/logo.webp" alt="" width="360" height="219">
   <h1 class="landing__name">SignBridge</h1>
-  <p class="landing__lead">Un patient sourd signe, le médecin lit et entend sa phrase en français ; le médecin écrit ou dicte, le patient lit la réponse et voit les signes.</p>
+  <p class="landing__lead">Un patient sourd signe, le médecin lit et entend sa phrase en tounsi ou en français ; le médecin écrit ou dicte, le patient lit la réponse et voit les signes.</p>
 
   <!-- A plain GET form: each button opens its page with ?room=..., with or without JavaScript. -->
   <form class="landing__form" action="patient.html" method="get">
@@ -34,7 +37,7 @@
 
   <p class="landing__signs"><a href="signs.html">Voir les signes et lesquels la caméra reconnaît</a></p>
 
-  <p class="landing__foot">La reconnaissance des signes se fait sur cet ordinateur : rien ne part sur Internet, sauf si le médecin utilise la dictée, qui passe par le service vocal du navigateur. Les signes médicaux viennent de la langue des signes espagnole (jeu de données SWL-LSE) ; les mots de tous les jours (oui, non, hôpital, les jours…) de la langue des signes tunisienne (jeu de données réalisé avec l'ATILS). Licences CC BY 4.0. Les signes sont montrés par une silhouette, jamais par la vidéo d'une personne.</p>
+  <p class="landing__foot">La reconnaissance des signes et la dictée en tounsi se font sur cet ordinateur. Peuvent partir sur Internet : les phrases du patient lues par la voix tounsi (ElevenLabs), et la voix du médecin s'il dicte avec le service vocal du navigateur. Les signes médicaux viennent de la langue des signes espagnole (jeu de données SWL-LSE) ; les mots de tous les jours (oui, non, hôpital, les jours…) de la langue des signes tunisienne (jeu de données réalisé avec l'ATILS). Licences CC BY 4.0. Les signes sont montrés par une silhouette, jamais par la vidéo d'une personne.</p>
 </main>
 
 </body>

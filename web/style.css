@@ -268,6 +268,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 
 .bar__brand { display: flex; align-items: baseline; gap: 12px; }
+.brand__logo { align-self: center; height: 40px; width: auto; margin-right: -4px; }
+.landing__logo { display: block; width: min(360px, 100%); height: auto; margin: -8px auto 18px; }
 .brand { color: var(--blue); font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
 .bar__room { color: var(--muted); font-size: 14px; }
 
@@ -892,6 +894,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .label-short { display: none; }
 
 @media (max-width: 599px) {
+  .brand__logo { height: 32px; }
   /* Patient: camera, then the doctor's reply (only when there is one), then the sentence. */
   .screen--patient { font-size: 16px; }
   .patient {

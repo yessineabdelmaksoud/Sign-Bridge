@@ -1,5 +1,7 @@
 # SignBridge
 
+<p align="center"><img src="web/brand/logo.png" alt="SignBridge logo: a raised hand wrapped in the Tunisian flag, in front of a bridge" width="420"></p>
+
 A deaf patient and a hearing doctor talk in real time, each on their own screen, without an interpreter.
 
 - **The patient signs.** Each sign the camera recognises becomes a word on the patient's screen. The patient builds a sentence from several signs, fixes or removes words, and sends it.
