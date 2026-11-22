@@ -24,3 +24,29 @@ def test_every_tunisian_sign_maps_to_an_answer_the_flow_knows():
     since = set(Flow.load().question("since").options)
     assert TO_ANSWER["oui"] is True and TO_ANSWER["non"] is False
     assert {v for v in TO_ANSWER.values() if isinstance(v, str)} <= since and len(TO_ANSWER) == 10
+
+
+def test_frames_are_grouped_by_signer_from_their_colours():
+    import numpy as np
+
+    from training.train_tunisl10 import cluster_signers
+
+    rng = np.random.default_rng(0)
+    centres = np.array([[30, 20, 20], [220, 225, 225], [60, 70, 85]], dtype=float)   # black, white, grey-blue tops
+    truth = rng.integers(0, 3, 120)
+    signatures = centres[truth] + rng.normal(0, 6, (120, 3))
+    groups = cluster_signers(signatures)
+    assert len(set(groups)) == 3
+    for person in range(3):   # everyone of one true signer shares one group
+        assert len(set(groups[truth == person])) == 1
+
+
+def test_one_signer_is_held_out_of_every_sign_they_appear_in():
+    import numpy as np
+
+    from training.train_tunisl10 import choose_held_out_signer
+
+    signers = {"oui": np.array([0, 0, 0, 1, 1, 2, 2, 2, 2]), "non": np.array([0, 0, 1, 1, 1, 2]),
+               "lyoum": np.array([0, 0, 0, 1, 1])}
+    # signer 1 is in every sign and is the smaller of the two who appear in both oui and non
+    assert choose_held_out_signer(signers) == 1
