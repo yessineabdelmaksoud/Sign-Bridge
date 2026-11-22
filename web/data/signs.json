@@ -3,215 +3,466 @@
   "groups": [
     {
       "id": "reason",
-      "icon": "🏥"
+      "fr": "Motif",
+      "ar": "السبب"
     },
     {
       "id": "symptom",
-      "icon": "🩺"
+      "fr": "Symptômes",
+      "ar": "الأعراض"
     },
     {
       "id": "conditions",
-      "icon": "📋"
+      "fr": "Antécédents",
+      "ar": "أمراض معروفة"
+    },
+    {
+      "id": "everyday",
+      "fr": "Vie courante (signes tunisiens)",
+      "ar": "كلام كل يوم"
     }
   ],
   "signs": [
     {
       "code": "ENFERMO",
       "group": "reason",
-      "icon": "🤒",
       "fr": "Malade",
       "ar": "مريض",
       "clip": "clips/ENFERMO.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "CITA",
       "group": "reason",
-      "icon": "📅",
       "fr": "Rendez-vous",
       "ar": "موعد",
       "clip": "clips/CITA.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "FARMACIA",
       "group": "reason",
-      "icon": "💊",
       "fr": "Médicament",
       "ar": "دواء",
       "clip": "clips/FARMACIA.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "URGENTE",
       "group": "reason",
-      "icon": "🚨",
       "fr": "Urgent",
       "ar": "حالة مستعجلة",
       "clip": "clips/URGENTE.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "DOLOR",
       "group": "symptom",
-      "icon": "😣",
       "fr": "Douleur",
       "ar": "وجيعة",
       "clip": "clips/DOLOR.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "DOLOR-DE-CABEZA",
       "group": "symptom",
-      "icon": "🤕",
       "fr": "Mal de tête",
       "ar": "وجيعة راس",
       "clip": "clips/DOLOR-DE-CABEZA.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "FIEBRE2",
       "group": "symptom",
-      "icon": "🌡️",
       "fr": "Fièvre",
       "ar": "سخانة",
       "clip": "clips/FIEBRE2.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "TOSER",
       "group": "symptom",
-      "icon": "😷",
       "fr": "Toux",
       "ar": "كحة",
       "clip": "clips/TOSER.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "MAREO",
       "group": "symptom",
-      "icon": "😵",
       "fr": "Vertige",
       "ar": "دوخة",
       "clip": "clips/MAREO.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "VOMITAR",
       "group": "symptom",
-      "icon": "🤮",
       "fr": "Vomissements",
       "ar": "تقيؤ",
       "clip": "clips/VOMITAR.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "DIARREA",
       "group": "symptom",
-      "icon": "🚽",
       "fr": "Diarrhée",
       "ar": "إسهال",
       "clip": "clips/DIARREA.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "RESPIRAR",
       "group": "symptom",
-      "icon": "🫁",
       "fr": "Essoufflement",
       "ar": "ضيق نفس",
       "clip": "clips/RESPIRAR.mp4",
-      "weak": false
+      "weak": true,
+      "language": "lse"
     },
     {
       "code": "CANSADO2",
       "group": "symptom",
-      "icon": "😴",
       "fr": "Fatigue",
       "ar": "تعب",
       "clip": "clips/CANSADO2.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "HERIDA",
       "group": "symptom",
-      "icon": "🩹",
       "fr": "Blessure",
       "ar": "جرح",
       "clip": "clips/HERIDA.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "ALERGIA2",
       "group": "symptom",
-      "icon": "🤧",
       "fr": "Allergie",
       "ar": "حساسية",
       "clip": "clips/ALERGIA2.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "GRIPE",
       "group": "symptom",
-      "icon": "🦠",
       "fr": "Grippe",
       "ar": "نزلة برد",
       "clip": "clips/GRIPE.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "INSOMNIO",
       "group": "symptom",
-      "icon": "🌙",
       "fr": "Insomnie",
       "ar": "قلة نوم",
       "clip": "clips/INSOMNIO.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "ANSIEDAD",
       "group": "symptom",
-      "icon": "😰",
       "fr": "Anxiété",
       "ar": "قلق",
       "clip": "clips/ANSIEDAD.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "DIABETES",
       "group": "conditions",
-      "icon": "🩸",
       "fr": "Diabète",
       "ar": "سكري",
       "clip": "clips/DIABETES.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "ASMA",
       "group": "conditions",
-      "icon": "🌬️",
       "fr": "Asthme",
       "ar": "ربو",
       "clip": "clips/ASMA.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "CORAZON",
       "group": "conditions",
-      "icon": "❤️",
       "fr": "Maladie du cœur",
       "ar": "مرض القلب",
       "clip": "clips/CORAZON.mp4",
-      "weak": true
+      "weak": false,
+      "language": "lse"
     },
     {
       "code": "EMBARAZO",
       "group": "conditions",
-      "icon": "🤰",
       "fr": "Grossesse",
       "ar": "حمل",
       "clip": "clips/EMBARAZO.mp4",
-      "weak": false
+      "weak": false,
+      "language": "lse"
+    },
+    {
+      "code": "TN_3ASLEMA",
+      "group": "everyday",
+      "fr": "Bonjour",
+      "ar": "عسلامة",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_MAR7BA",
+      "group": "everyday",
+      "fr": "Bienvenue",
+      "ar": "مرحبا",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_LABES",
+      "group": "everyday",
+      "fr": "Ça va",
+      "ar": "لاباس",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_OUI",
+      "group": "everyday",
+      "fr": "Oui",
+      "ar": "إيه",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_NON",
+      "group": "everyday",
+      "fr": "Non",
+      "ar": "لا",
+      "clip": null,
+      "weak": false,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_T7EB",
+      "group": "everyday",
+      "fr": "Vouloir",
+      "ar": "تحب",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_N3AWNEK",
+      "group": "everyday",
+      "fr": "Aider",
+      "ar": "نعاونك",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_NEKTEBLK",
+      "group": "everyday",
+      "fr": "Écrire",
+      "ar": "نكتبلك",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_ASSAM",
+      "group": "everyday",
+      "fr": "Nom",
+      "ar": "اسمك",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_LYOUM",
+      "group": "everyday",
+      "fr": "Aujourd'hui",
+      "ar": "اليوم",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_SE7A",
+      "group": "everyday",
+      "fr": "Santé",
+      "ar": "صحة",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_SBITAR",
+      "group": "everyday",
+      "fr": "Hôpital",
+      "ar": "سبيطار",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_MOSTAWSAF",
+      "group": "everyday",
+      "fr": "Dispensaire",
+      "ar": "مستوصف",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_DAR",
+      "group": "everyday",
+      "fr": "Maison",
+      "ar": "دار",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_OM",
+      "group": "everyday",
+      "fr": "Mère",
+      "ar": "أم",
+      "clip": null,
+      "weak": false,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_BOU",
+      "group": "everyday",
+      "fr": "Père",
+      "ar": "بو",
+      "clip": null,
+      "weak": false,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_3AYLA",
+      "group": "everyday",
+      "fr": "Famille",
+      "ar": "عايلة",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_TFOL",
+      "group": "everyday",
+      "fr": "Enfant",
+      "ar": "طفل",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_5OU",
+      "group": "everyday",
+      "fr": "Frère",
+      "ar": "خو",
+      "clip": null,
+      "weak": false,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_O5T",
+      "group": "everyday",
+      "fr": "Sœur",
+      "ar": "أخت",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_THNIN",
+      "group": "everyday",
+      "fr": "Lundi",
+      "ar": "الاثنين",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_THLETH",
+      "group": "everyday",
+      "fr": "Mardi",
+      "ar": "الثلاثاء",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_ERB3A",
+      "group": "everyday",
+      "fr": "Mercredi",
+      "ar": "الأربعاء",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_5MIS",
+      "group": "everyday",
+      "fr": "Jeudi",
+      "ar": "الخميس",
+      "clip": null,
+      "weak": false,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_JOM3A",
+      "group": "everyday",
+      "fr": "Vendredi",
+      "ar": "الجمعة",
+      "clip": null,
+      "weak": false,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_SEBT",
+      "group": "everyday",
+      "fr": "Samedi",
+      "ar": "السبت",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
+    },
+    {
+      "code": "TN_A7AD",
+      "group": "everyday",
+      "fr": "Dimanche",
+      "ar": "الأحد",
+      "clip": null,
+      "weak": true,
+      "language": "tunisian"
     }
   ]
 }

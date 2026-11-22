@@ -26,7 +26,7 @@ test("one and two symptoms", () => {
 test("every sign has a French and an Arabic sentence", () => {
   for (const sign of signs) {
     const sentence = signsToSentence([sign.code], signs);
-    assert.match(sentence.fr, /^[A-Z].+\.$/u, sign.code);
+    assert.match(sentence.fr, /^\p{Lu}.+\.$/u, sign.code);
     assert.ok(sentence.ar.length > 1, sign.code);
     assert.match(sentence.ar, /[؀-ۿ]/u, sign.code);
   }
@@ -178,7 +178,8 @@ test("nothing to show", () => {
   assert.deepEqual(find(""), []);
   assert.deepEqual(find("   "), []);
   assert.deepEqual(find(undefined), []);
-  assert.deepEqual(find("Bonjour, asseyez-vous."), []);
+  assert.deepEqual(find("Asseyez-vous, s'il vous plaît."), []);
+  assert.deepEqual(find("Bonjour, asseyez-vous."), ["TN_3ASLEMA"]);
 });
 
 test("a full doctor sentence", () => {

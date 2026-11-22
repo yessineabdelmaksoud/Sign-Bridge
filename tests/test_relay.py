@@ -402,7 +402,7 @@ def test_a_static_file_is_still_served(server):
     assert status == 200
     assert headers["Content-Type"] == "application/json"
     assert headers["Cache-Control"] == "no-store"
-    assert len(json.loads(body)["signs"]) == 22
+    assert len(json.loads(body)["signs"]) >= 22
 
 
 def test_es_modules_get_a_javascript_mime_type(server):

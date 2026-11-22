@@ -31,9 +31,9 @@ test("the exported weights are the weights of the Python model", () => {
 
 test("the model carries the labels, the threshold and the weak labels", () => {
   assert.deepEqual(model.labels, fixtures().index.labels);
-  assert.equal(model.labels.length, 23);
-  assert.equal(model.threshold, 0.4);
-  assert.deepEqual(model.weakLabels, ["CORAZON"]);
+  assert.equal(model.labels.at(-1), "OTHER");
+  assert.equal(model.threshold, fixtures().index.threshold);
+  assert.deepEqual(model.weakLabels, fixtures().index.weak_labels);
 });
 
 test("predict gives one probability per label, and they sum to 1", () => {
@@ -41,7 +41,7 @@ test("predict gives one probability per label, and they sum to 1", () => {
   const item = index.clips.find((entry) => entry.features_offset !== null);
   const probs = model.predict(floats(item.features_offset, 32 * 184));
   assert.ok(probs instanceof Float32Array);
-  assert.equal(probs.length, 23);
+  assert.equal(probs.length, model.labels.length);
   assert.ok(probs.every((p) => p >= 0 && p <= 1));
   assert.ok(Math.abs(probs.reduce((a, b) => a + b, 0) - 1) < 1e-5);
 });
@@ -96,7 +96,7 @@ test("fromBuffer also takes the bytes as a typed array, wherever it starts in it
 
 test("fromBuffer refuses a .bin that is not the size the manifest gives", () => {
   assert.throws(() => DenseModel.fromBuffer(manifest, weights.slice(0, weights.byteLength - 4)), /health_signs\.bin/);
-  assert.throws(() => DenseModel.fromBuffer(manifest, new ArrayBuffer(0)), /6220892/);
+  assert.throws(() => DenseModel.fromBuffer(manifest, new ArrayBuffer(0)), new RegExp(String(manifest.byte_length)));
 });
 
 test("load fetches the manifest and the .bin beside it", async (t) => {
@@ -107,7 +107,7 @@ test("load fetches the manifest and the .bin beside it", async (t) => {
   const loaded = await DenseModel.load("models/health_signs.json");
   assert.deepEqual(requested, ["models/health_signs.json", "models/health_signs.bin"]);
   assert.deepEqual(loaded.labels, manifest.labels);
-  assert.equal(loaded.threshold, 0.4);
+  assert.equal(loaded.threshold, manifest.threshold);
 
   const { index, floats } = fixtures();
   const item = index.clips.find((entry) => entry.features_offset !== null);

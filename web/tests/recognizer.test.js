@@ -124,7 +124,7 @@ test("allowed defaults to every sign except OTHER and the weak labels", () => {
 
 test("the recognizer lists every label, OTHER included", () => {
   assert.deepEqual(recognizer.labels, manifest.labels);
-  assert.equal(recognizer.labels.length, 23);
+  assert.ok(recognizer.labels.length >= 23);
   assert.ok(recognizer.labels.includes(OTHER));
 });
 

@@ -61,7 +61,7 @@ def build_manifest(meta: dict, described: list[dict], layers: int, blob: bytes) 
     return {
         "labels": meta["labels"],
         "threshold": meta["threshold"],
-        "weak_labels": meta.get("weak_labels", []),
+        "weak_labels": [label for label in meta["labels"] if label in set(meta.get("weak_labels", []))],
         "frames": meta["frames"],
         "features": meta["features"],
         "model": meta.get("model"),

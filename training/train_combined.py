@@ -137,7 +137,7 @@ def main() -> None:
                 "Language Dataset, each signer held out in turn. A weak label is never proposed.",
     }
     meta = {"labels": labels, "threshold": threshold, "frames": FRAMES, "features": 184,
-            "weak_labels": sorted(set(weak_health) | set(weak_tn)), "model": "numpy-mlp", "hidden": list(hidden),
+            "weak_labels": [label for label in labels if label in set(weak_health) | set(weak_tn)],   # model order "model": "numpy-mlp", "hidden": list(hidden),
             "groups": {"everyday": everyday, **SIGN_SETS}, "metrics": metrics}
     args.out.mkdir(parents=True, exist_ok=True)
     model.save(args.out / "health_signs.npz")

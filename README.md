@@ -62,7 +62,35 @@ To let the doctor join from another device on the same network, start the server
 
 Every sign can be shown to the patient as a stick figure. Not every sign is recognised from the patient's camera: a sign is proposed only if it was recognised reliably on signers the model never saw (see Results).
 
-<!-- RESULTS -->
+## Results
+
+One model recognises both sets: 22 medical signs, 27 Tunisian words and an "other" class. Each set is scored so that it cannot flatter itself.
+
+**Medical signs** (SWL-LSE official test split, signers' identity not checked against training):
+
+| Measure | Result | Clips |
+|---|---|---|
+| Right sign among all 50 classes | 71.4% | 56 |
+| Right sign in the top 3 | 92.9% | 56 |
+| As the patient screen works (every proposed sign allowed), replaying held-out recordings frame by frame through the capture | 76% right first time, 15% "sign again", 7% wrong | 125 |
+
+A wrong proposal is not sent: the patient sees the word, with the next two guesses offered as corrections, and can remove it. An earlier model trained on the medical signs alone scored 80.7% ± 1.3 over 5-fold cross-validation.
+
+**Tunisian everyday words** (each of the 7 signers held out in turn, so the model never saw the person it is scored on):
+
+| Word | Right on unseen signers |
+|---|---|
+| Père | 5 / 5 |
+| Frère, Vendredi | 3 / 3 |
+| Non | 3 / 4 |
+| Mère, Jeudi | 2 / 2 |
+| Oui | 2 / 3 |
+| All 27 words | 28 / 74 (38%) |
+
+The camera proposes a sign only if it scored at least 70% this way. Six Tunisian words pass (père, frère, vendredi, non, mère, jeudi); "oui" misses by one recording. The other words, and those performed by a single signer in the dataset (bienvenue, ça va, nom, lundi, mardi, mercredi), cannot be recognised reliably yet: they are shown to the patient as stick figures but never proposed from the camera. Among the medical signs, "essoufflement" is also shown but not proposed.
+
+Metrics: `Demo/consultation/models/health_signs.json`.
+
 
 ## Limits
 

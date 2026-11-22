@@ -112,7 +112,7 @@ def replay(raw: np.ndarray, fps: float = 30.0):
 
 def real_clips(floats: Floats, model: DenseModel, recogniser: SignRecognizer) -> list[dict]:
     annotations, class_names = read_annotations(DATA / "ANNOTATIONS.zip", DATA / "videos_ref_annotations.csv")
-    signs = [code for codes in SIGN_SETS.values() for code in codes]
+    signs = [label for label in recogniser.labels if label != OTHER]   # every sign the model knows
     group_of = {code: name for name, codes in SIGN_SETS.items() for code in codes}
     allowed_sets = {**SIGN_SETS, "all": signs}
     wanted = dict(FEATURE_CLIPS)

@@ -22,11 +22,59 @@
     "ASMA",
     "CORAZON",
     "EMBARAZO",
+    "TN_3ASLEMA",
+    "TN_MAR7BA",
+    "TN_LABES",
+    "TN_OUI",
+    "TN_NON",
+    "TN_T7EB",
+    "TN_N3AWNEK",
+    "TN_NEKTEBLK",
+    "TN_ASSAM",
+    "TN_LYOUM",
+    "TN_SE7A",
+    "TN_SBITAR",
+    "TN_MOSTAWSAF",
+    "TN_DAR",
+    "TN_OM",
+    "TN_BOU",
+    "TN_3AYLA",
+    "TN_TFOL",
+    "TN_5OU",
+    "TN_O5T",
+    "TN_THNIN",
+    "TN_THLETH",
+    "TN_ERB3A",
+    "TN_5MIS",
+    "TN_JOM3A",
+    "TN_SEBT",
+    "TN_A7AD",
     "OTHER"
   ],
-  "threshold": 0.4,
+  "threshold": 0.5,
   "weak_labels": [
-    "CORAZON"
+    "RESPIRAR",
+    "TN_3ASLEMA",
+    "TN_MAR7BA",
+    "TN_LABES",
+    "TN_OUI",
+    "TN_T7EB",
+    "TN_N3AWNEK",
+    "TN_NEKTEBLK",
+    "TN_ASSAM",
+    "TN_LYOUM",
+    "TN_SE7A",
+    "TN_SBITAR",
+    "TN_MOSTAWSAF",
+    "TN_DAR",
+    "TN_3AYLA",
+    "TN_TFOL",
+    "TN_O5T",
+    "TN_THNIN",
+    "TN_THLETH",
+    "TN_ERB3A",
+    "TN_SEBT",
+    "TN_A7AD"
   ],
   "frames": 32,
   "features": 184,
@@ -39,8 +87,8 @@
   "weights": "health_signs.bin",
   "dtype": "float32",
   "byte_order": "little",
-  "byte_length": 6220892,
-  "sha256": "694a59492eaee05b0d38395c3939be77ac87f6b04ae0f095132133e2dc9f554e",
+  "byte_length": 6234824,
+  "sha256": "d54739dd5a8dfa0d9068337e373f92bbe6ebdc84a3ad5c7194fb849499b4951a",
   "arrays": [
     {
       "name": "mean",
@@ -96,24 +144,24 @@
       "name": "w2",
       "shape": [
         128,
-        23
+        50
       ],
       "byte_offset": 6209024,
-      "length": 2944
+      "length": 6400
     },
     {
       "name": "b2",
       "shape": [
-        23
+        50
       ],
-      "byte_offset": 6220800,
-      "length": 23
+      "byte_offset": 6234624,
+      "length": 50
     }
   ],
   "metrics": {
     "official_test": {
-      "top1": 0.75,
-      "top3": 0.8929,
+      "top1": 0.7143,
+      "top3": 0.9286,
       "n": 56,
       "narrowed": {
         "reason": {
@@ -121,7 +169,7 @@
           "n": 8
         },
         "symptom": {
-          "top1": 0.8571,
+          "top1": 0.8929,
           "n": 28
         },
         "conditions": {
@@ -131,8 +179,8 @@
       }
     },
     "official_validation": {
-      "top1": 0.8817,
-      "top3": 0.9462,
+      "top1": 0.828,
+      "top3": 0.9785,
       "n": 93,
       "narrowed": {
         "reason": {
@@ -144,35 +192,154 @@
           "n": 53
         },
         "conditions": {
-          "top1": 0.8571,
+          "top1": 1.0,
           "n": 14
         }
       }
     },
-    "cv_folds": 5,
-    "cv_top1": {
-      "mean": 0.8069,
-      "std": 0.0131
-    },
-    "cv_top3": {
-      "mean": 0.9328,
-      "std": 0.0147
-    },
-    "cv_narrowed_top1": {
-      "reason": {
-        "mean": 0.9243,
-        "std": 0.0278
-      },
-      "symptom": {
-        "mean": 0.9064,
-        "std": 0.0233
-      },
-      "conditions": {
-        "mean": 0.9103,
-        "std": 0.034
+    "tunisian_leave_one_signer_out": {
+      "top1": 0.3784,
+      "n": 74,
+      "per_word": {
+        "TN_3ASLEMA": {
+          "correct": 2,
+          "n": 4,
+          "signers": 3
+        },
+        "TN_MAR7BA": {
+          "correct": 0,
+          "n": 1,
+          "signers": 1
+        },
+        "TN_LABES": {
+          "correct": 0,
+          "n": 1,
+          "signers": 1
+        },
+        "TN_OUI": {
+          "correct": 2,
+          "n": 3,
+          "signers": 3
+        },
+        "TN_NON": {
+          "correct": 3,
+          "n": 4,
+          "signers": 3
+        },
+        "TN_T7EB": {
+          "correct": 0,
+          "n": 3,
+          "signers": 2
+        },
+        "TN_N3AWNEK": {
+          "correct": 0,
+          "n": 4,
+          "signers": 3
+        },
+        "TN_NEKTEBLK": {
+          "correct": 0,
+          "n": 2,
+          "signers": 2
+        },
+        "TN_ASSAM": {
+          "correct": 0,
+          "n": 1,
+          "signers": 1
+        },
+        "TN_LYOUM": {
+          "correct": 1,
+          "n": 2,
+          "signers": 2
+        },
+        "TN_SE7A": {
+          "correct": 0,
+          "n": 7,
+          "signers": 5
+        },
+        "TN_SBITAR": {
+          "correct": 0,
+          "n": 3,
+          "signers": 3
+        },
+        "TN_MOSTAWSAF": {
+          "correct": 0,
+          "n": 3,
+          "signers": 3
+        },
+        "TN_DAR": {
+          "correct": 2,
+          "n": 4,
+          "signers": 4
+        },
+        "TN_OM": {
+          "correct": 2,
+          "n": 2,
+          "signers": 2
+        },
+        "TN_BOU": {
+          "correct": 5,
+          "n": 5,
+          "signers": 2
+        },
+        "TN_3AYLA": {
+          "correct": 0,
+          "n": 4,
+          "signers": 3
+        },
+        "TN_TFOL": {
+          "correct": 1,
+          "n": 3,
+          "signers": 3
+        },
+        "TN_5OU": {
+          "correct": 3,
+          "n": 3,
+          "signers": 2
+        },
+        "TN_O5T": {
+          "correct": 0,
+          "n": 3,
+          "signers": 2
+        },
+        "TN_THNIN": {
+          "correct": 0,
+          "n": 1,
+          "signers": 1
+        },
+        "TN_THLETH": {
+          "correct": 0,
+          "n": 1,
+          "signers": 1
+        },
+        "TN_ERB3A": {
+          "correct": 0,
+          "n": 1,
+          "signers": 1
+        },
+        "TN_5MIS": {
+          "correct": 2,
+          "n": 2,
+          "signers": 2
+        },
+        "TN_JOM3A": {
+          "correct": 3,
+          "n": 3,
+          "signers": 2
+        },
+        "TN_SEBT": {
+          "correct": 1,
+          "n": 2,
+          "signers": 2
+        },
+        "TN_A7AD": {
+          "correct": 1,
+          "n": 2,
+          "signers": 2
+        }
       }
     },
+    "best_epoch": 19,
     "split_signer_independent": "unknown",
-    "note": "Scores are on SWL-LSE (Spanish Sign Language). 'narrowed' means choosing only among the answers one question allows. The official test split has two clips per sign."
+    "note": "Health signs: SWL-LSE (Spanish Sign Language), official split. Tunisian words: Tunisian Sign Language Dataset, each signer held out in turn. A weak label is never proposed."
   }
 }
