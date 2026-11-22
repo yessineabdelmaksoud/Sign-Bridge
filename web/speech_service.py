@@ -155,7 +155,8 @@ class Voice:
             with self._open(request, timeout=30) as response:
                 audio = response.read()
         except urllib.error.HTTPError as error:
-            code = {401: "key-refused", 402: "paid-plan", 429: "busy"}.get(error.code, "upstream")
+            # 404: the voice is not in the account of this key (add it from the Voice Library).
+            code = {401: "key-refused", 402: "paid-plan", 404: "no-voice", 429: "busy"}.get(error.code, "upstream")
             raise SpeechError(code, 502) from None
         except (urllib.error.URLError, TimeoutError, OSError):
             raise SpeechError("offline", 502) from None

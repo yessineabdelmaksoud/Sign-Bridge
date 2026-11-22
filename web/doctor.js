@@ -77,6 +77,7 @@ const VOICE_ERRORS = {
   "no-key": "pas de clé ElevenLabs sur le serveur",
   "key-refused": "clé ElevenLabs refusée",
   "paid-plan": "cette voix demande un abonnement ElevenLabs payant",
+  "no-voice": "la voix tounsi n'est pas dans votre compte ElevenLabs",
   busy: "ElevenLabs est saturé",
   offline: "ElevenLabs ne répond pas (Internet ?)",
   network: "le serveur ne répond pas",

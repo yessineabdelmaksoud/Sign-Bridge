@@ -166,7 +166,9 @@ def test_voice_refuses_empty_or_long_text(text):
     assert caught.value.code == "bad-text"
 
 
-@pytest.mark.parametrize("status,code", [(401, "key-refused"), (402, "paid-plan"), (429, "busy"), (500, "upstream")])
+@pytest.mark.parametrize("status,code", [
+    (401, "key-refused"), (402, "paid-plan"), (404, "no-voice"), (429, "busy"), (500, "upstream"),
+])
 def test_voice_names_elevenlabs_errors(status, code):
     error = urllib.error.HTTPError("https://api.elevenlabs.io", status, "x", {}, io.BytesIO(b"{}"))
     with pytest.raises(speech.SpeechError) as caught:
