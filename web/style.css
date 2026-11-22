@@ -867,3 +867,4 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-radius: var(--radius-s); font: 13px/1.45 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; white-space: pre-wrap;
 }
 .alts--choices .alt { border-color: var(--amber); }
+.bar__note.is-warning { color: var(--ink); background: var(--amber); padding: 2px 8px; border-radius: 6px; font-weight: 700; }

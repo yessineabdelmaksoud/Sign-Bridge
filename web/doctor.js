@@ -296,8 +296,30 @@ function renderVoice() {
     : `Lecture à voix haute : ${state.voiceOn ? "activée" : "désactivée"}`;
 }
 
+// Chrome lets a page speak only after someone has clicked on it. If a patient message
+// arrives first (in split view, a click on the patient side does not count), say so.
+const VOICE_NOTE = "La lecture à voix haute peut utiliser le service vocal du navigateur.";
+const VOICE_BLOCKED = "Pour entendre les messages, cliquez une fois sur cet écran (le navigateur l'exige).";
+
+function voiceAllowed() {
+  return !globalThis.navigator?.userActivation || globalThis.navigator.userActivation.hasBeenActive;
+}
+
+function showVoiceNote() {
+  const note = document.getElementById("voice-note");
+  if (!note) return;
+  const blocked = state.voiceOn && canSpeak() && !voiceAllowed();
+  note.textContent = blocked ? VOICE_BLOCKED : VOICE_NOTE;
+  note.classList.toggle("is-warning", blocked);
+}
+
 function readAloud(text) {
   if (!state.voiceOn || !canSpeak()) return;
+  if (!voiceAllowed()) {
+    showVoiceNote();
+    state.unspoken = text;   // read once the doctor clicks
+    return;
+  }
   try {
     state.speech.speak(text, { lang: "fr-FR" });
   } catch (error) {
@@ -683,3 +705,11 @@ async function boot() {
 }
 
 boot();
+
+// The first click on the doctor screen unlocks the voice: read the message that was waiting.
+document.addEventListener("pointerdown", () => {
+  if (!state.unspoken) return showVoiceNote();
+  const text = state.unspoken;
+  state.unspoken = null;
+  setTimeout(() => { showVoiceNote(); readAloud(text); }, 0);
+}, { capture: true });
