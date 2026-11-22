@@ -1,0 +1,194 @@
+{
+  "labels": [
+    "ENFERMO",
+    "CITA",
+    "FARMACIA",
+    "URGENTE",
+    "DOLOR",
+    "DOLOR-DE-CABEZA",
+    "FIEBRE2",
+    "TOSER",
+    "MAREO",
+    "VOMITAR",
+    "DIARREA",
+    "RESPIRAR",
+    "CANSADO2",
+    "HERIDA",
+    "ALERGIA2",
+    "GRIPE",
+    "INSOMNIO",
+    "ANSIEDAD",
+    "DIABETES",
+    "ASMA",
+    "CORAZON",
+    "EMBARAZO",
+    "OTHER"
+  ],
+  "threshold": 0.4,
+  "frames": 32,
+  "features": 184,
+  "weak_labels": [
+    "CORAZON"
+  ],
+  "model": "numpy-mlp",
+  "hidden": [
+    256,
+    128
+  ],
+  "metrics": {
+    "official_test": {
+      "top1": 0.75,
+      "top3": 0.8929,
+      "n": 56,
+      "narrowed": {
+        "reason": {
+          "top1": 0.875,
+          "n": 8
+        },
+        "symptom": {
+          "top1": 0.8571,
+          "n": 28
+        },
+        "conditions": {
+          "top1": 0.875,
+          "n": 8
+        }
+      }
+    },
+    "official_validation": {
+      "top1": 0.8817,
+      "top3": 0.9462,
+      "n": 93,
+      "narrowed": {
+        "reason": {
+          "top1": 1.0,
+          "n": 14
+        },
+        "symptom": {
+          "top1": 0.9811,
+          "n": 53
+        },
+        "conditions": {
+          "top1": 0.8571,
+          "n": 14
+        }
+      }
+    },
+    "cv_folds": 5,
+    "cv_top1": {
+      "mean": 0.8069,
+      "std": 0.0131
+    },
+    "cv_top3": {
+      "mean": 0.9328,
+      "std": 0.0147
+    },
+    "cv_narrowed_top1": {
+      "reason": {
+        "mean": 0.9243,
+        "std": 0.0278
+      },
+      "symptom": {
+        "mean": 0.9064,
+        "std": 0.0233
+      },
+      "conditions": {
+        "mean": 0.9103,
+        "std": 0.034
+      }
+    },
+    "per_label_heldout": {
+      "ENFERMO": {
+        "correct": 5,
+        "n": 5
+      },
+      "CITA": {
+        "correct": 4,
+        "n": 5
+      },
+      "FARMACIA": {
+        "correct": 6,
+        "n": 6
+      },
+      "URGENTE": {
+        "correct": 6,
+        "n": 6
+      },
+      "DOLOR": {
+        "correct": 6,
+        "n": 6
+      },
+      "DOLOR-DE-CABEZA": {
+        "correct": 6,
+        "n": 6
+      },
+      "FIEBRE2": {
+        "correct": 5,
+        "n": 6
+      },
+      "TOSER": {
+        "correct": 5,
+        "n": 6
+      },
+      "MAREO": {
+        "correct": 6,
+        "n": 6
+      },
+      "VOMITAR": {
+        "correct": 5,
+        "n": 5
+      },
+      "DIARREA": {
+        "correct": 6,
+        "n": 6
+      },
+      "RESPIRAR": {
+        "correct": 5,
+        "n": 6
+      },
+      "CANSADO2": {
+        "correct": 4,
+        "n": 5
+      },
+      "HERIDA": {
+        "correct": 5,
+        "n": 6
+      },
+      "ALERGIA2": {
+        "correct": 6,
+        "n": 6
+      },
+      "GRIPE": {
+        "correct": 6,
+        "n": 6
+      },
+      "INSOMNIO": {
+        "correct": 6,
+        "n": 6
+      },
+      "ANSIEDAD": {
+        "correct": 5,
+        "n": 5
+      },
+      "DIABETES": {
+        "correct": 5,
+        "n": 5
+      },
+      "ASMA": {
+        "correct": 6,
+        "n": 6
+      },
+      "CORAZON": {
+        "correct": 3,
+        "n": 6
+      },
+      "EMBARAZO": {
+        "correct": 5,
+        "n": 5
+      }
+    },
+    "best_epoch": 20,
+    "split_signer_independent": "unknown",
+    "note": "Scores are on SWL-LSE (Spanish Sign Language). 'narrowed' means choosing only among the answers one question allows. The official test split has two clips per sign."
+  }
+}
