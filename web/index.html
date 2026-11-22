@@ -4,249 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#12508F">
-  <title>SignBridge : lecture de signes médicaux</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2312508F'/%3E%3Cg fill='%23fff'%3E%3Crect x='6.4' y='7' width='2.3' height='7' rx='1.15'/%3E%3Crect x='9.2' y='4.8' width='2.3' height='9' rx='1.15'/%3E%3Crect x='12' y='4.2' width='2.3' height='9' rx='1.15'/%3E%3Crect x='14.8' y='5.8' width='2.3' height='8' rx='1.15'/%3E%3Cpath d='M6.4 12h10.7v2.6a5.35 5.35 0 0 1-10.7 0z'/%3E%3C/g%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css">
+  <title>SignBridge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="landing">
 
-<!-- Pictograms. Inline so the page needs no other file. -->
-<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
-  <defs>
-    <symbol id="i-hand" viewBox="0 0 24 24">
-      <rect x="5.2" y="6.2" width="2.7" height="9" rx="1.35"/>
-      <rect x="8.5" y="3.4" width="2.7" height="11" rx="1.35"/>
-      <rect x="11.8" y="2.6" width="2.7" height="11" rx="1.35"/>
-      <rect x="15.1" y="4.6" width="2.7" height="10" rx="1.35"/>
-      <path d="M5.2 12.5h12.6v3.2a6.3 6.3 0 0 1-12.6 0z"/>
-      <rect x="17.3" y="10.4" width="2.7" height="7.4" rx="1.35" transform="rotate(38 18.65 14.1)"/>
-    </symbol>
+<main class="landing__card">
+  <h1 class="landing__name">SignBridge</h1>
+  <p class="landing__lead">Un patient sourd signe, le médecin lit et entend sa phrase en français ; le médecin écrit ou dicte, le patient lit la réponse et voit les signes.</p>
 
-    <symbol id="i-camera" viewBox="0 0 24 24">
-      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h8A2.5 2.5 0 0 1 16 7.5v1.6l3.4-2.3A1 1 0 0 1 21 7.6v8.8a1 1 0 0 1-1.6.8L16 14.9v1.6a2.5 2.5 0 0 1-2.5 2.5h-8A2.5 2.5 0 0 1 3 16.5z"/>
-    </symbol>
+  <!-- A plain GET form: each button opens its page with ?room=..., with or without JavaScript. -->
+  <form class="landing__form" action="patient.html" method="get">
+    <label class="field">
+      <span class="field__label">Salle</span>
+      <input class="field__input" name="room" value="demo" required maxlength="32"
+             pattern="[A-Za-z0-9_\-]{1,32}" autocomplete="off" spellcheck="false"
+             title="Lettres sans accent, chiffres, tiret ou tiret bas : 32 caractères au plus."
+             aria-describedby="room-hint">
+      <span class="field__hint" id="room-hint">Le patient et le médecin doivent choisir la même salle.</span>
+    </label>
 
-    <symbol id="i-camera-off" viewBox="0 0 24 24">
-      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h8A2.5 2.5 0 0 1 16 7.5v1.6l3.4-2.3A1 1 0 0 1 21 7.6v8.8a1 1 0 0 1-1.6.8L16 14.9v1.6a2.5 2.5 0 0 1-2.5 2.5h-8A2.5 2.5 0 0 1 3 16.5z"/>
-      <path d="M4 3.2l16 17.6" fill="none" style="stroke: var(--knock, #12508F)" stroke-width="5.4" stroke-linecap="round"/>
-      <path d="M4 3.2l16 17.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-    </symbol>
-
-    <symbol id="i-sound" viewBox="0 0 24 24">
-      <path d="M3 9.5a1 1 0 0 1 1-1h3.2l4.2-3.6a1 1 0 0 1 1.6.8v12.6a1 1 0 0 1-1.6.8l-4.2-3.6H4a1 1 0 0 1-1-1z"/>
-      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M16 9a4.2 4.2 0 0 1 0 6"/>
-        <path d="M18.7 6.3a8 8 0 0 1 0 11.4"/>
-      </g>
-    </symbol>
-
-    <symbol id="i-sound-off" viewBox="0 0 24 24">
-      <path d="M3 9.5a1 1 0 0 1 1-1h3.2l4.2-3.6a1 1 0 0 1 1.6.8v12.6a1 1 0 0 1-1.6.8l-4.2-3.6H4a1 1 0 0 1-1-1z"/>
-      <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-        <path d="M16.4 9.4l5 5.2"/>
-        <path d="M21.4 9.4l-5 5.2"/>
-      </g>
-    </symbol>
-
-    <symbol id="i-warning" viewBox="0 0 24 24">
-      <path d="M12 3.2a1.6 1.6 0 0 1 1.4.8l8.2 14.3a1.6 1.6 0 0 1-1.4 2.4H3.8a1.6 1.6 0 0 1-1.4-2.4L10.6 4a1.6 1.6 0 0 1 1.4-.8z"/>
-      <path d="M12 9.2v5" fill="none" style="stroke: var(--knock, #FFFFFF)" stroke-width="2.2" stroke-linecap="round"/>
-      <circle cx="12" cy="17.4" r="1.25" style="fill: var(--knock, #FFFFFF)"/>
-    </symbol>
-
-    <symbol id="i-again" viewBox="0 0 24 24">
-      <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.5 4.5v5.2h-5.2"/>
-        <path d="M19 14.6a7.6 7.6 0 1 1-1.8-7.9l3.3 3"/>
-      </g>
-    </symbol>
-
-    <symbol id="i-sign-again" viewBox="0 0 24 24">
-      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21.6 2.6v4.6H17"/>
-        <path d="M21.2 14.4a9.4 9.4 0 1 1-2.2-9.7l2.6 2.5"/>
-      </g>
-      <use href="#i-hand" x="6.6" y="6.9" width="10.8" height="10.8"/>
-    </symbol>
-
-    <symbol id="i-check" viewBox="0 0 24 24">
-      <path d="M5 12.6l4.6 4.6L19 7.4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-
-    <symbol id="i-cross" viewBox="0 0 24 24">
-      <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
-    </symbol>
-
-    <symbol id="i-play" viewBox="0 0 24 24">
-      <path d="M8 5.6v12.8a1 1 0 0 0 1.5.9l10.4-6.4a1 1 0 0 0 0-1.8L9.5 4.7a1 1 0 0 0-1.5.9z"/>
-    </symbol>
-
-    <symbol id="i-grid" viewBox="0 0 24 24">
-      <rect x="3.5" y="3.5" width="7.4" height="7.4" rx="1.8"/>
-      <rect x="13.1" y="3.5" width="7.4" height="7.4" rx="1.8"/>
-      <rect x="3.5" y="13.1" width="7.4" height="7.4" rx="1.8"/>
-      <rect x="13.1" y="13.1" width="7.4" height="7.4" rx="1.8"/>
-    </symbol>
-
-    <symbol id="i-tap" viewBox="0 0 24 24">
-      <rect x="9.6" y="2.5" width="3.4" height="12" rx="1.7"/>
-      <path d="M9.6 11h9.2a1.8 1.8 0 0 1 1.8 1.8v2.7a6.5 6.5 0 0 1-6.5 6.5h-.6a6.5 6.5 0 0 1-5.2-2.6L4.6 15a1.7 1.7 0 0 1 2.6-2.2l2.4 2.4z"/>
-    </symbol>
-
-    <symbol id="i-history" viewBox="0 0 24 24">
-      <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="8.6"/>
-        <path d="M12 7.4V12l3.2 2"/>
-      </g>
-    </symbol>
-
-    <symbol id="i-hourglass" viewBox="0 0 24 24">
-      <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6.5 3h11M6.5 21h11"/>
-        <path d="M8 3v3.4a4 4 0 0 0 1.4 3L12 12l2.6-2.6a4 4 0 0 0 1.4-3V3"/>
-        <path d="M8 21v-3.4a4 4 0 0 1 1.4-3L12 12l2.6 2.6a4 4 0 0 1 1.4 3V21"/>
-      </g>
-    </symbol>
-  </defs>
-</svg>
-
-<div class="app" id="app">
-
-  <header class="rail">
-    <div class="brand">
-      <span class="brand__mark"><svg class="icon" aria-hidden="true"><use href="#i-hand"/></svg></span>
-      <span class="brand__name">SignBridge</span>
+    <div class="landing__choices">
+      <button class="btn btn--primary btn--wide" type="submit" formaction="patient.html">Écran du patient</button>
+      <button class="btn btn--primary btn--wide" type="submit" formaction="doctor.html">Écran du médecin</button>
+      <button class="btn btn--quiet btn--wide" type="submit" formaction="split.html">Les deux sur cet écran</button>
     </div>
-    <div class="rail__controls">
-      <button type="button" class="ctl" id="btn-camera" aria-pressed="false" aria-label="Caméra" title="Caméra">
-        <svg class="icon ctl__on" aria-hidden="true"><use href="#i-camera"/></svg>
-        <svg class="icon ctl__off" aria-hidden="true"><use href="#i-camera-off"/></svg>
-      </button>
-      <button type="button" class="ctl" id="btn-sound" aria-pressed="true" aria-label="Son" title="Son">
-        <svg class="icon ctl__on" aria-hidden="true"><use href="#i-sound"/></svg>
-        <svg class="icon ctl__off" aria-hidden="true"><use href="#i-sound-off"/></svg>
-      </button>
-    </div>
-  </header>
+  </form>
 
-  <main class="board">
+  <p class="landing__foot">La reconnaissance des signes se fait sur cet ordinateur : rien ne part sur Internet, sauf si le médecin utilise la dictée, qui passe par le service vocal du navigateur. Les signes sont en langue des signes espagnole (vidéos SWL-LSE, licence CC BY 4.0).</p>
+</main>
 
-    <section class="stage" id="stage" data-view="loading" data-hand="none" aria-label="Image de la caméra">
-      <video class="stage__media" id="cam" playsinline muted autoplay hidden></video>
-      <video class="stage__media" id="clip" playsinline muted preload="none" hidden></video>
-      <canvas class="stage__media" id="overlay" aria-hidden="true"></canvas>
-
-      <div class="status" id="status" role="img" aria-label="Aucune main visible">
-        <span class="status__ring"></span>
-        <svg class="icon" aria-hidden="true"><use href="#i-hand"/></svg>
-      </div>
-
-      <div class="tag tag--clip" id="clip-tag" hidden>
-        <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>
-        <span class="emoji" id="clip-emoji" aria-hidden="true"></span>
-        <span id="clip-name"></span>
-      </div>
-
-      <div class="tag tag--mock" id="mock-tag" hidden>Simulation</div>
-
-      <div class="stage__panel stage__panel--loading">
-        <svg class="icon stage__glyph" aria-hidden="true"><use href="#i-hourglass"/></svg>
-        <div class="steps" id="steps" aria-hidden="true"><span></span><span></span><span></span></div>
-        <p class="bi bi--center">
-          <span class="bi__ar ar" lang="ar" dir="rtl">جارٍ التحميل</span>
-          <span class="bi__fr">Chargement</span>
-        </p>
-      </div>
-
-      <div class="stage__panel stage__panel--idle">
-        <button type="button" class="start" id="btn-start" aria-label="Démarrer la caméra">
-          <svg class="icon" aria-hidden="true"><use href="#i-camera"/></svg>
-        </button>
-        <p class="bi bi--center">
-          <span class="bi__ar ar" lang="ar" dir="rtl">شغّل الكاميرا</span>
-          <span class="bi__fr">Démarrer la caméra</span>
-        </p>
-      </div>
-
-      <div class="stage__panel stage__panel--error" role="alert">
-        <svg class="icon stage__glyph" aria-hidden="true"><use href="#i-warning"/></svg>
-        <p class="stage__message" id="error-text"></p>
-        <button type="button" class="retry" id="btn-retry" aria-label="Réessayer">
-          <svg class="icon" aria-hidden="true"><use id="retry-glyph" href="#i-again"/></svg>
-        </button>
-      </div>
-    </section>
-
-    <section class="result" id="result" data-state="idle" aria-label="Signe reconnu">
-      <div class="plate">
-        <div class="plate__body">
-          <div class="plate__layout">
-            <div class="plate__picto">
-              <span class="emoji" id="res-emoji" aria-hidden="true" hidden></span>
-              <svg class="icon plate__glyph" aria-hidden="true"><use id="res-glyph" href="#i-hand"/></svg>
-              <span class="plate__badge" aria-hidden="true">
-                <svg class="icon plate__badge-ai"><use href="#i-check"/></svg>
-                <svg class="icon plate__badge-hand"><use href="#i-tap"/></svg>
-              </span>
-            </div>
-            <div class="plate__names">
-              <p class="plate__ar ar" id="res-ar" lang="ar" dir="rtl"></p>
-              <p class="plate__fr" id="res-fr"></p>
-            </div>
-          </div>
-        </div>
-        <div class="plate__meter">
-          <div class="meter" id="res-meter" role="meter" aria-label="Confiance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-            <span class="meter__fill"></span>
-            <span class="meter__mark"></span>
-          </div>
-          <span class="meter__num" id="res-num"></span>
-        </div>
-      </div>
-
-      <div class="others is-empty" id="others" role="group" aria-label="Autres signes possibles">
-        <span class="others__hint" aria-hidden="true"><svg class="icon"><use href="#i-tap"/></svg></span>
-        <span class="others__slot" aria-hidden="true"></span>
-        <span class="others__slot" aria-hidden="true"></span>
-      </div>
-
-      <ol class="history" id="history" aria-label="Derniers signes reconnus"></ol>
-
-      <p class="vh" id="announce" aria-live="polite"></p>
-    </section>
-
-    <fieldset class="filters" id="filters">
-      <legend class="vh">Signes que l'IA peut proposer</legend>
-    </fieldset>
-
-    <section class="gallery" id="gallery" aria-label="Tous les signes"></section>
-
-    <footer class="foot">
-      <p>Les signes sont en langue des signes espagnole (jeu de données SWL-LSE). Rien ne quitte cet appareil.</p>
-    </footer>
-
-  </main>
-</div>
-
-<noscript>
-  <p class="noscript">Cette page a besoin de JavaScript. Activez-le, puis rechargez la page.</p>
-</noscript>
-
-<script>
-  // If app.js cannot start at all (page opened as a file, very old browser),
-  // say so in the stage instead of leaving the loading state up forever.
-  window.setTimeout(function () {
-    if (window.__signbridgeBooted) return;
-    var stage = document.getElementById("stage");
-    var text = document.getElementById("error-text");
-    var retry = document.getElementById("btn-retry");
-    text.textContent = location.protocol === "file:"
-      ? "La page est ouverte comme un fichier : lancez le serveur local, puis ouvrez son adresse."
-      : "L'application n'a pas démarré : mettez le navigateur à jour, puis rechargez la page.";
-    retry.onclick = function () { location.reload(); };
-    stage.setAttribute("data-view", "error");
-  }, 4000);
-</script>
-<script type="module" src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#12508F">
+  <title>SignBridge : médecin</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="screen screen--doctor">
+
+<header class="bar">
+  <p class="bar__brand"><span class="brand">SignBridge</span></p>
+  <p class="bar__meta"><span id="room-name"></span> <span class="bar__link" id="link-status" aria-live="polite">Connexion…</span></p>
+  <div class="bar__actions">
+    <button type="button" class="btn btn--quiet btn--small" id="btn-voice" aria-pressed="true" aria-describedby="voice-note">Lecture à voix haute : activée</button>
+    <button type="button" class="btn btn--quiet btn--small" id="btn-new">Nouvelle consultation</button>
+    <p class="bar__note" id="voice-note">La lecture à voix haute peut utiliser le service vocal du navigateur.</p>
+  </div>
+</header>
+
+<div class="confirm" id="confirm" role="alertdialog" aria-labelledby="confirm-text" hidden>
+  <p class="confirm__text" id="confirm-text">Commencer une nouvelle consultation ? La conversation sera effacée sur les deux écrans.</p>
+  <div class="confirm__actions">
+    <button type="button" class="btn btn--primary btn--small" id="btn-confirm">Effacer la conversation</button>
+    <button type="button" class="btn btn--quiet btn--small" id="btn-cancel">Annuler</button>
+  </div>
+</div>
+
+<main class="doctor">
+
+  <section class="talk" aria-label="Conversation">
+    <p class="talk__error" id="talk-error" role="alert" hidden></p>
+    <p class="talk__empty" id="thread-empty">Les messages du patient s'affichent ici, écrits et lus à voix haute.</p>
+    <ol class="thread" id="thread"></ol>
+    <p class="pill pill--busy talk__live" id="patient-activity" hidden>Le patient signe…</p>
+  </section>
+
+  <section class="questions" aria-labelledby="questions-title">
+    <h2 class="questions__title" id="questions-title">Questions prêtes</h2>
+    <div class="questions__list" id="questions"></div>
+  </section>
+
+  <form class="composer" id="composer" autocomplete="off">
+    <label class="vh" for="field">Votre réponse au patient</label>
+    <div class="composer__row">
+      <textarea class="composer__field" id="field" rows="2" placeholder="Écrivez votre réponse, puis Entrée"></textarea>
+      <button type="submit" class="btn btn--send" id="btn-send" disabled>Envoyer</button>
+    </div>
+    <p class="composer__signs" id="signs-preview" aria-live="polite"></p>
+    <div class="composer__dictation">
+      <button type="button" class="btn btn--quiet btn--small" id="btn-dictate" aria-pressed="false">Dicter</button>
+      <p class="composer__note" id="dictation-note">La dictée utilise le service vocal du navigateur.</p>
+    </div>
+  </form>
+
+</main>
+
+<noscript><p class="noscript">Cette page a besoin de JavaScript. Activez-le, puis rechargez la page.</p></noscript>
+<script>
+  // If doctor.js cannot start at all (page opened as a file, very old browser), say so.
+  window.setTimeout(function () {
+    if (window.__signbridgeBooted) return;
+    var box = document.getElementById("talk-error");
+    box.textContent = location.protocol === "file:"
+      ? "La page est ouverte comme un fichier : lancez le serveur local (python3 web/serve.py), puis ouvrez son adresse."
+      : "L'application n'a pas démarré : mettez le navigateur à jour, puis rechargez la page.";
+    box.hidden = false;
+  }, 5000);
+</script>
+<script type="module" src="doctor.js"></script>
+</body>
+</html>
