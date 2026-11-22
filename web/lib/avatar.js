@@ -6,8 +6,10 @@
 // shoulder widths from the shoulder midpoint, y pointing down, as seen facing
 // the signer. This file only draws them.
 
-const INK = "#10233A";
-const HAND = "#12508F";
+// Two colours: the still body is light, the parts that sign (arms and hands) are dark,
+// so the eye goes to the sign.
+const BODY = "#C5D0DC";
+const SIGN = "#10233A";
 
 // Order of the 7 body points in the data: nose, then left/right shoulder,
 // elbow, wrist (MediaPipe pose 0, 11, 12, 13, 14, 15, 16).
@@ -28,10 +30,10 @@ const GAP_SECONDS = 0.3;       // between two signs: the body glides from one to
 const END_HOLD_SECONDS = 0.5;  // the last pose stays briefly before returning to rest
 
 // Hands are drawn larger than life around the wrist, so the handshape reads on a small screen.
-const HAND_SCALE = 1.5;
+const HAND_SCALE = 1.6;
 
 /** The area, in body units, that is always visible (measured over all 22 signs, with a margin). */
-export const BOX = { left: -2.1, right: 2.1, top: -1.35, bottom: 2.4 };
+export const BOX = { left: -1.8, right: 1.8, top: -1.25, bottom: 2.05 };
 
 /** Standing still, arms down. */
 export const REST_FRAME = {
@@ -88,8 +90,8 @@ export function drawFigure(ctx, frame, lay) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // Body: head, neck, shoulders, torso outline, arms.
-  ctx.strokeStyle = INK;
+  // The still body, light: head, neck, shoulders, torso outline.
+  ctx.strokeStyle = BODY;
   ctx.lineWidth = Math.max(3, width * 0.09);
   ctx.beginPath();
   const [hx, hy] = lay.toPx(nose);
@@ -100,6 +102,12 @@ export function drawFigure(ctx, frame, lay) {
   line(ctx, lay, ls, [neck[0] + HIP_HALF, neck[1] + HIP_Y]);
   line(ctx, lay, rs, [neck[0] - HIP_HALF, neck[1] + HIP_Y]);
   line(ctx, lay, [neck[0] + HIP_HALF, neck[1] + HIP_Y], [neck[0] - HIP_HALF, neck[1] + HIP_Y]);
+  ctx.stroke();
+
+  // The sign, dark: both arms, then every finger bone (hands drawn larger around the wrist).
+  ctx.strokeStyle = SIGN;
+  ctx.lineWidth = Math.max(3, width * 0.1);
+  ctx.beginPath();
   for (const [shoulder, elbow, wrist, hand] of [
     [ls, point(p, L_ELBOW), point(p, L_WRIST), frame.l],
     [rs, point(p, R_ELBOW), point(p, R_WRIST), frame.r],
@@ -109,9 +117,7 @@ export function drawFigure(ctx, frame, lay) {
   }
   ctx.stroke();
 
-  // Hands: every finger bone.
-  ctx.strokeStyle = HAND;
-  ctx.lineWidth = Math.max(2, width * 0.045);
+  ctx.lineWidth = Math.max(2, width * 0.055);
   ctx.beginPath();
   for (const hand of [frame.l, frame.r]) {
     if (!hand) continue;
