@@ -12,6 +12,18 @@
 
 **Where to work:** a real `git clone` of `MohamedYassineAbid/Sign-Bridge`. All paths below are relative to that repo root. Tasks 8, 9 and 11 run in Colab or Kaggle (3.5 GB download, GPU). Tasks 2–7 need only NumPy and pytest.
 
+## Changes made while building
+
+These decisions were taken during execution and override the text below where they differ.
+
+- **Model:** the health sign model is a small fully connected network trained and run with NumPy (`training/mlp.py`, `Demo/consultation/numpy_model.py`), not the Keras BiLSTM. The connection could not download TensorFlow, and a NumPy model keeps the consultation page independent of it. The recogniser still loads a `.keras` file if one is supplied.
+- **SWL-LSE access:** only the needed clips are fetched, with ranged downloads (`training/swl_remote.py`), and the pickles are read by a loader that executes nothing from them (`training/swl_convert.py`). This replaces the "open only in Colab or Kaggle" constraint and lets conversion and training run on a laptop.
+- **Python:** 3.12 was used; 3.11 also works.
+- **Page styling:** the consultation page has its own offline stylesheet (`Demo/consultation/ui.py`); `apply_tunisign_theme` was left unchanged.
+- **Page tests:** the page is driven by Streamlit's `AppTest` in `tests/test_consultation_page.py`.
+- **Task 11:** script, hold-out logic and gate are written and tested; the training run is still to do (it needs MediaPipe and the full Tunisian dataset). Signed yes/no and days stay tap-only until then.
+- **Licence:** not added; the repo owner decides.
+
 ## Global Constraints
 
 - The consultation page and `Demo/consultation/` make no network calls: no `elevenlabs`, `requests`, `urllib`, or remote URLs.

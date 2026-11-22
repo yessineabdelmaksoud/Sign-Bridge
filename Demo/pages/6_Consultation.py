@@ -16,7 +16,8 @@ from consultation.recognizer import SignRecognizer, StaticSignRecognizer
 from consultation.session import Consultation
 from consultation.summary import Summary, build_summary
 
-st.set_page_config(page_title="SignBridge consultation", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="SignBridge consultation", page_icon="🩺", layout="wide",
+                   initial_sidebar_state="collapsed")
 st.markdown(f"<style>{ui.CSS}</style>", unsafe_allow_html=True)
 
 MODELS = Path(os.environ.get("SIGNBRIDGE_MODELS") or Path(__file__).resolve().parents[1] / "consultation" / "models")

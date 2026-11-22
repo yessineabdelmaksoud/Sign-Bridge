@@ -89,7 +89,8 @@ CSS = f"""
 .stApp [class*="st-key-guess_"] button:hover,
 .stApp [class*="st-key-ins_"] button:hover {{ background: #E3ECF7; border-color: var(--sign); color: var(--ink); }}
 .stApp [class*="st-key-guess_"] button {{ border-color: var(--amber); border-width: 4px; }}
-.stApp [class*="st-key-opt_SCALE_"] button {{ min-height: 4.6rem; padding: .2rem; }}
+.stApp [class*="st-key-opt_SCALE_"] button {{ min-height: 5.4rem; padding: .2rem; }}
+.stApp [class*="st-key-opt_SCALE_"] button p {{ white-space: nowrap; }}
 .stApp .st-key-bodymap [class*="st-key-opt_"] button {{ min-height: 5.6rem; }}
 .stApp .st-key-bodymap [class*="st-key-opt_"] button p::first-line {{ font-size: 1.9rem; }}
 .stApp [class*="st-key-opt_SCALE_"] button p::first-line {{ font-size: 1.7rem; }}
@@ -103,6 +104,9 @@ CSS = f"""
   width: 100%; min-height: 4.4rem; background: var(--sign); border: 2px solid var(--sign); color: #fff; border-radius: 8px;
 }}
 .stApp .st-key-multi_done button:hover {{ background: var(--sign-deep); color: #fff; }}
+/* Streamlit colours button text itself, so each filled button states its own text colour. */
+.stApp .st-key-confirm_yes button p, .stApp .st-key-multi_done button p {{ color: #fff; }}
+.stApp .st-key-confirm_no button p {{ color: var(--alert); }}
 .stApp button:focus-visible {{ outline: 4px solid var(--amber); outline-offset: 2px; }}
 
 /* The doctor's side: a plain sheet. */
