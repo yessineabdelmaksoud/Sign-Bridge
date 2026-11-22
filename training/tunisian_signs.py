@@ -144,6 +144,32 @@ def _elbow(shoulder: np.ndarray, wrist: np.ndarray, outward: float, limb: float)
     return max(candidates, key=lambda e: e[1] + 0.5 * outward * (e[0] - shoulder[0])).astype(np.float32)
 
 
+def fix_take_sides(clip: np.ndarray) -> np.ndarray:
+    """Put a take's hands back on their sides when the whole take has them the wrong way.
+
+    Seen facing the signer, the signer's left hand is on the image right. Used for the
+    stick figures only (training mirrors clips anyway).
+    """
+    from consultation.landmarks import LEFT, RIGHT
+
+    out = np.array(clip, dtype=np.float32, copy=True)
+    middle = np.nanmedian((out[:, 11, 0] + out[:, 12, 0]) / 2) if np.isfinite(out[:, [11, 12], 0]).any() else 0.5
+    width = np.nanmedian(np.abs(out[:, 11, 0] - out[:, 12, 0])) if np.isfinite(out[:, [11, 12], 0]).any() else 0.5
+    left_x, right_x = out[:, LEFT.start, 0], out[:, RIGHT.start, 0]
+    both = np.isfinite(left_x) & np.isfinite(right_x)
+    if both.sum() >= max(3, len(out) // 3):
+        if np.median(left_x[both]) < np.median(right_x[both]):      # crossed for the whole take
+            out[:, [*range(LEFT.start, LEFT.stop), *range(RIGHT.start, RIGHT.stop)]] = \
+                out[:, [*range(RIGHT.start, RIGHT.stop), *range(LEFT.start, LEFT.stop)]]
+        return out
+    margin = 0.25 * width
+    if np.isfinite(left_x).any() and not np.isfinite(right_x).any() and np.nanmedian(left_x) < middle - margin:
+        out[:, RIGHT], out[:, LEFT] = out[:, LEFT].copy(), np.nan
+    elif np.isfinite(right_x).any() and not np.isfinite(left_x).any() and np.nanmedian(right_x) > middle + margin:
+        out[:, LEFT], out[:, RIGHT] = out[:, RIGHT].copy(), np.nan
+    return out
+
+
 def steady_clip(clip: np.ndarray) -> np.ndarray:
     """A take with steady shoulders and head, hands kept on their side, and plausible elbows."""
     from consultation.landmarks import LEFT, RIGHT
@@ -243,7 +269,7 @@ def add_poses(seq_dir: Path, poses_path: Path) -> list[str]:
                             key=lambda e: (e["hand_frames"], e["frames"]), reverse=True)
         for take in candidates:   # the best take whose body was found too
             with np.errstate(all="ignore"):
-                sign = encode_sign(steady_clip(np.load(seq_dir / take["file"])), pad=1)
+                sign = encode_sign(steady_clip(fix_take_sides(np.load(seq_dir / take["file"]))), pad=1)
             if len(sign["frames"]) >= MIN_POSE_FRAMES:
                 sign["fps"] = POSE_FPS
                 data["signs"][v["code"]] = sign

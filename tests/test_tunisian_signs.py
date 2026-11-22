@@ -157,3 +157,31 @@ def test_an_implausible_elbow_is_rebuilt_between_shoulder_and_hand():
     width = np.linalg.norm(out[0, 11, :2] - out[0, 12, :2])
     assert elbow[1] > shoulder[1], "the elbow hangs below the shoulder"
     assert np.linalg.norm(elbow - shoulder) < 1.3 * width and np.linalg.norm(elbow - wrist) < 1.3 * width
+
+
+def test_a_take_with_both_hands_on_the_wrong_side_is_flipped_back():
+    from consultation.landmarks import LEFT, RIGHT
+    from training.tunisian_signs import fix_take_sides
+
+    clip = _take()
+    clip[:, LEFT, 0], clip[:, RIGHT, 0] = 0.3, 0.7     # signer's left hand on the image left: crossed all along
+    out = fix_take_sides(clip)
+    assert (out[:, LEFT.start, 0] > 0.5).all() and (out[:, RIGHT.start, 0] < 0.5).all()
+
+
+def test_a_lone_hand_far_on_the_other_side_is_moved_to_its_side():
+    from consultation.landmarks import LEFT, RIGHT
+    from training.tunisian_signs import fix_take_sides
+
+    clip = _take()
+    clip[:, RIGHT] = np.nan
+    clip[:, LEFT, 0] = 0.2                              # body midline at 0.5: this is the right hand
+    out = fix_take_sides(clip)
+    assert np.isnan(out[:, LEFT]).all() and (out[:, RIGHT.start, 0] < 0.3).all()
+
+
+def test_hands_on_their_own_sides_are_left_alone():
+    from training.tunisian_signs import fix_take_sides
+
+    clip = _take()
+    assert np.allclose(fix_take_sides(clip), clip, equal_nan=True)

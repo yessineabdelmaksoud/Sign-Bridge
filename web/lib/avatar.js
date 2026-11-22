@@ -6,10 +6,15 @@
 // shoulder widths from the shoulder midpoint, y pointing down, as seen facing
 // the signer. This file only draws them.
 
-// Two colours: the still body is light, the parts that sign (arms and hands) are dark,
-// so the eye goes to the sign.
-const BODY = "#C5D0DC";
-const SIGN = "#10233A";
+// Colours. The still body is light; each signing arm and hand has its own dark colour,
+// so two hands that cross stay readable; a hand resting at the waist turns light,
+// so the eye goes to the hand that signs.
+export const COLOURS = {
+  body: "#C5D0DC",
+  right: "#10233A",   // the signer's right hand (on the viewer's left)
+  left: "#1D6FB8",    // the signer's left hand (on the viewer's right)
+  rest: "#B4C2D1",
+};
 
 // Order of the 7 body points in the data: nose, then left/right shoulder,
 // elbow, wrist (MediaPipe pose 0, 11, 12, 13, 14, 15, 16).
@@ -26,14 +31,18 @@ const HAND_BONES = [
 const HEAD_RADIUS = 0.34;
 const HIP_Y = 1.75;
 const HIP_HALF = 0.36;
-const GAP_SECONDS = 0.3;       // between two signs: the body glides from one to the next
-const END_HOLD_SECONDS = 0.5;  // the last pose stays briefly before returning to rest
+const GAP_SECONDS = 0.45;      // between two signs: the body glides from one to the next
+const END_HOLD_SECONDS = 0.6;  // the last pose stays briefly before returning to rest
 
-// Hands are drawn larger than life around the wrist, so the handshape reads on a small screen.
-const HAND_SCALE = 1.6;
+/** Playback speed: a little slower than the recordings, so a sign can be followed. */
+export const SPEED = 0.85;
 
-/** The area, in body units, that is always visible (measured over all 22 signs, with a margin). */
-export const BOX = { left: -1.8, right: 1.8, top: -1.25, bottom: 2.05 };
+// Hands are drawn a little larger than life around the wrist, so the handshape reads.
+const HAND_SCALE = 1.25;
+const REST_Y = 1.35;           // a wrist lower than this (near the hips) is a resting hand
+
+/** The area, in body units, that is always visible: the figure with room around it. */
+export const BOX = { left: -2.15, right: 2.15, top: -1.55, bottom: 2.25 };
 
 /** Standing still, arms down. */
 export const REST_FRAME = {
@@ -67,6 +76,20 @@ export function frameAt(sign, t, fps) {
   return sign.frames[index];
 }
 
+/** The frame at `t` seconds, blended between the two recorded frames around it. */
+export function frameBetween(sign, t, fps) {
+  const position = Math.min(sign.frames.length - 1, Math.max(0, t * fps));
+  const i = Math.floor(position);
+  const next = Math.min(sign.frames.length - 1, i + 1);
+  const w = position - i;
+  return w < 1e-6 || next === i ? sign.frames[i] : blend(sign.frames[i], sign.frames[next], w);
+}
+
+/** A hand is resting when it is missing or hangs at the waist, out of the signing space. */
+export function handIsResting(hand) {
+  return !hand || hand[1] > REST_Y;
+}
+
 function point(list, i) {
   return [list[2 * i], list[2 * i + 1]];
 }
@@ -91,7 +114,7 @@ export function drawFigure(ctx, frame, lay) {
   ctx.lineJoin = "round";
 
   // The still body, light: head, neck, shoulders, torso outline.
-  ctx.strokeStyle = BODY;
+  ctx.strokeStyle = COLOURS.body;
   ctx.lineWidth = Math.max(3, width * 0.09);
   ctx.beginPath();
   const [hx, hy] = lay.toPx(nose);
@@ -104,32 +127,46 @@ export function drawFigure(ctx, frame, lay) {
   line(ctx, lay, [neck[0] + HIP_HALF, neck[1] + HIP_Y], [neck[0] - HIP_HALF, neck[1] + HIP_Y]);
   ctx.stroke();
 
-  // The sign, dark: both arms, then every finger bone (hands drawn larger around the wrist).
-  ctx.strokeStyle = SIGN;
-  ctx.lineWidth = Math.max(3, width * 0.1);
-  ctx.beginPath();
-  for (const [shoulder, elbow, wrist, hand] of [
-    [ls, point(p, L_ELBOW), point(p, L_WRIST), frame.l],
-    [rs, point(p, R_ELBOW), point(p, R_WRIST), frame.r],
-  ]) {
-    line(ctx, lay, shoulder, elbow);
-    line(ctx, lay, elbow, hand ? point(hand, 0) : wrist);   // the forearm ends where the hand is
+  // Each arm and hand: resting ones first (light), then the signing ones on top (dark).
+  const arms = [
+    { shoulder: ls, elbow: point(p, L_ELBOW), wrist: point(p, L_WRIST), hand: frame.l, colour: COLOURS.left },
+    { shoulder: rs, elbow: point(p, R_ELBOW), wrist: point(p, R_WRIST), hand: frame.r, colour: COLOURS.right },
+  ];
+  arms.sort((a, b) => Number(!handIsResting(a.hand)) - Number(!handIsResting(b.hand)));
+  for (const arm of arms) {
+    const colour = handIsResting(arm.hand) ? COLOURS.rest : arm.colour;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = Math.max(3, width * 0.1);
+    ctx.beginPath();
+    line(ctx, lay, arm.shoulder, arm.elbow);
+    line(ctx, lay, arm.elbow, arm.hand ? point(arm.hand, 0) : arm.wrist);   // the forearm ends at the hand
+    ctx.stroke();
+    if (arm.hand) drawHand(ctx, lay, arm.hand, colour, width);
   }
-  ctx.stroke();
-
-  ctx.lineWidth = Math.max(2, width * 0.055);
-  ctx.beginPath();
-  for (const hand of [frame.l, frame.r]) {
-    if (!hand) continue;
-    const [wx, wy] = point(hand, 0);
-    const at = (i) => {
-      const [x, y] = point(hand, i);
-      return [wx + (x - wx) * HAND_SCALE, wy + (y - wy) * HAND_SCALE];
-    };
-    for (const [a, b] of HAND_BONES) line(ctx, lay, at(a), at(b));
-  }
-  ctx.stroke();
   ctx.restore();
+}
+
+/** A hand: a filled palm, so it reads as one shape, and a line for each finger. */
+function drawHand(ctx, lay, hand, colour, width) {
+  const [wx, wy] = point(hand, 0);
+  const at = (i) => {
+    const [x, y] = point(hand, i);
+    return [wx + (x - wx) * HAND_SCALE, wy + (y - wy) * HAND_SCALE];
+  };
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  [0, 1, 5, 9, 13, 17].forEach((i, k) => {
+    const [x, y] = lay.toPx(at(i));
+    if (k === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = Math.max(2, width * 0.06);
+  ctx.beginPath();
+  for (const [a, b] of HAND_BONES) line(ctx, lay, at(a), at(b));
+  ctx.stroke();
 }
 
 function blend(a, b, w) {
@@ -173,7 +210,7 @@ export class SignAvatar {
       const sign = this.#poses.signs.get(code);
       if (!sign || !sign.frames.length) continue;
       if (segments.length) t += GAP_SECONDS;
-      const rate = sign.fps || fps;   // a sign may carry its own frame rate
+      const rate = (sign.fps || fps) * SPEED;   // a sign may carry its own frame rate
       const duration = sign.frames.length / rate;
       segments.push({ code, sign, rate, start: t, end: t + duration, index: segments.length });
       t += duration;
@@ -207,7 +244,7 @@ export class SignAvatar {
             announced = segment.index;
             onSign?.(segment.code, segment.index);
           }
-          frame = frameAt(segment.sign, elapsed - segment.start, segment.rate);
+          frame = frameBetween(segment.sign, elapsed - segment.start, segment.rate);
         }
         this.#draw(frame);
         this.#tick = this.#time.schedule(step);

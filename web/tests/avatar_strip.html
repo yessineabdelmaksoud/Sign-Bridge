@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stick-figure strips</title>
+<style>
+  body { margin: 0; padding: 12px; background: #EEF2F6; color: #10233A; font-family: system-ui, sans-serif; }
+  .row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .row b { width: 110px; font-size: 13px; }
+  canvas { width: 150px; height: 150px; background: #fff; border: 1px solid #C5D0DC; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div id="rows"></div>
+<script type="module">
+import { loadSignPoses, drawFigure, layout } from "../lib/avatar.js";
+const poses = await loadSignPoses();
+const codes = (new URLSearchParams(location.search).get("codes") || "DOLOR,TOSER,ENFERMO,TN_3ASLEMA,TN_OUI,TN_T7EB,TN_SBITAR,TN_5MIS").split(",");
+const rows = document.getElementById("rows");
+for (const code of codes) {
+  const sign = poses.signs.get(code);
+  if (!sign) continue;
+  const row = document.createElement("div");
+  row.className = "row";
+  row.innerHTML = `<b>${code}</b>`;
+  rows.append(row);
+  const count = 7;
+  for (let k = 0; k < count; k++) {
+    const frame = sign.frames[Math.round((k / (count - 1)) * (sign.frames.length - 1))];
+    const canvas = document.createElement("canvas");
+    row.append(canvas);
+    const ratio = devicePixelRatio || 1;
+    canvas.width = 150 * ratio; canvas.height = 150 * ratio;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    drawFigure(ctx, frame, layout(150, 150));
+  }
+}
+window.stripReady = true;
+</script>
+</body>
+</html>

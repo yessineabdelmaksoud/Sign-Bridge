@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BOX, REST_FRAME, SignAvatar, drawFigure, frameAt, layout, poseFromJson } from "../lib/avatar.js";
+import { BOX, COLOURS, REST_FRAME, SPEED, SignAvatar, drawFigure, frameAt, frameBetween, handIsResting, layout, poseFromJson } from "../lib/avatar.js";
 import { readJson } from "./helpers.js";
 
 const poses = poseFromJson(readJson("data/sign_poses.json"));
@@ -15,7 +15,7 @@ function fakeContext() {
     points,
     calls: 0,
     canvas: { width: 300, height: 400 },
-    save() {}, restore() {}, beginPath() { this.calls += 1; }, stroke() {}, fill() {},
+    save() {}, restore() {}, beginPath() { this.calls += 1; }, stroke() {}, fill() {}, closePath() {},
     clearRect() {}, setTransform() {},
     moveTo: record, lineTo: record,
     arc(x, y) { record(x, y); },
@@ -136,16 +136,37 @@ test("a sign with its own frame rate is played at that rate", async () => {
   const frames = Array.from({ length: 10 }, () => REST_FRAME);
   const custom = { fps: 20, signs: new Map([["SLOW", { fps: 5, frames }], ["FAST", { frames }]]) };
   const avatar = new SignAvatar(fakeCanvas(), custom, time);
+  const slowSeconds = 10 / 5 / SPEED;   // 10 frames at 5 fps, played at SPEED
   let slowDone = false;
   const slow = avatar.play(["SLOW"]).then(() => { slowDone = true; });
-  time.advance(1600);   // 10 frames at 5 fps last 2 s (+0.5 s hold): not over yet
+  time.advance(slowSeconds * 1000 * 0.8);
   await Promise.resolve();
   assert.equal(slowDone, false);
-  time.advance(1200);
+  time.advance(slowSeconds * 1000 + 1200);
   await slow;
   let fastDone = false;
   const fast = avatar.play(["FAST"]).then(() => { fastDone = true; });
-  time.advance(1100);   // 10 frames at 20 fps last 0.5 s (+0.5 s hold)
+  time.advance((10 / 20 / SPEED) * 1000 + 1200);
   await fast;
   assert.equal(fastDone, true);
+});
+
+test("the two hands have their own dark colours, the body a light one", () => {
+  assert.notEqual(COLOURS.left, COLOURS.right);
+  assert.notEqual(COLOURS.body, COLOURS.left);
+  assert.notEqual(COLOURS.rest, COLOURS.right);
+});
+
+test("a hand hanging at the waist is resting; a hand in the signing space is not", () => {
+  const hand = (y) => Array.from({ length: 42 }, (_, i) => (i % 2 ? y : 0.5));
+  assert.equal(handIsResting(hand(1.7)), true);
+  assert.equal(handIsResting(hand(0.4)), false);
+  assert.equal(handIsResting(null), true);
+});
+
+test("playback blends between recorded frames for smooth motion", () => {
+  const sign = { frames: [{ p: Array(14).fill(0), l: null, r: null }, { p: Array(14).fill(10), l: null, r: null }] };
+  assert.equal(frameBetween(sign, 0.05, 10).p[0], 5);
+  assert.equal(frameBetween(sign, 0, 10).p[0], 0);
+  assert.equal(frameBetween(sign, 5, 10).p[0], 10);
 });
