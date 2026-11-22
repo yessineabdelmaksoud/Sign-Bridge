@@ -54,3 +54,11 @@ def test_stratified_folds_use_every_sample_once_and_balance_classes():
     folds = stratified_folds(y, 5, seed=3)
     assert sorted(np.concatenate(folds).tolist()) == list(range(22))
     assert all(1 <= (y[f] == 1).sum() <= 1 for f in folds) and all((y[f] == 0).sum() == 2 for f in folds)
+
+
+def test_featurise_of_no_clips_is_an_empty_batch():
+    from training.train_health import featurise, top_k
+
+    empty = featurise(np.empty((0, 32, 75, 3), np.float32))
+    assert empty.shape == (0, 32, 184)
+    assert top_k(np.empty((0, 5)), np.empty(0, dtype=int), 1) == 0.0

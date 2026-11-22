@@ -75,6 +75,15 @@ def _load_keras_model(path: Path):
         str(path), custom_objects={"TemporalAttention": temporal_attention_layer()}, compile=False)
 
 
+def _load_model(path: Path):
+    """A .npz file is the NumPy network; anything else is a Keras model."""
+    if path.suffix == ".npz":
+        from consultation.numpy_model import DenseModel
+
+        return DenseModel.load(path)
+    return _load_keras_model(path)
+
+
 class _Recognizer:
     def __init__(self, model_path: Path, meta_path: Path, model=None):
         self.available = False
@@ -89,7 +98,7 @@ class _Recognizer:
             self.labels = list(self.meta["labels"])
             self.threshold = float(self.meta.get("threshold", 0.6))
             self.weak_labels = list(self.meta.get("weak_labels", []))
-            self._model = model if model is not None else _load_keras_model(Path(model_path))
+            self._model = model if model is not None else _load_model(Path(model_path))
             self.available = True
         except Exception as error:  # any failure means: answer by tapping
             self.error = f"{type(error).__name__}: {error}"

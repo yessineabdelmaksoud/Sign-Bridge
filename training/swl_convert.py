@@ -209,6 +209,11 @@ def fetch_clips(picked, cache: Path, workers: int = 4) -> None:
                 print(f"fetched {done}/{len(todo)}", flush=True)
 
 
+def cached_only(picked, cache: Path) -> list:
+    """The picked clips that are already in the cache (for working without a connection)."""
+    return [item for item in picked if (cache / f"{item[0]}.npy").exists()]
+
+
 def build_dataset(picked, cache: Path, out_path: Path) -> dict:
     """Trim and resample the cached clips and save the training file."""
     labels = [code for name in ("reason", "symptom", "conditions") for code in SIGN_SETS[name]] + [OTHER]
@@ -236,6 +241,7 @@ def main() -> None:
     parser.add_argument("--data", type=Path, default=Path("data/swl"))
     parser.add_argument("--out", type=Path, default=Path("data/swl22.npz"))
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--offline", action="store_true", help="use only the clips already downloaded")
     args = parser.parse_args()
 
     annotations, class_names = read_annotations(
@@ -246,7 +252,10 @@ def main() -> None:
     if missing:
         raise SystemExit(f"signs not found in SWL-LSE: {missing}")
     picked = select_ids(annotations, class_names, signs)
-    fetch_clips(picked, args.data / "clips", args.workers)
+    if args.offline:
+        picked = cached_only(picked, args.data / "clips")
+    else:
+        fetch_clips(picked, args.data / "clips", args.workers)
     report = build_dataset(picked, args.data / "clips", args.out)
     print(report)
     if report["skipped_no_hand"] > 0.05 * len(picked):

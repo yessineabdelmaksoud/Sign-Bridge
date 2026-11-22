@@ -125,3 +125,30 @@ def test_select_ids_takes_whole_classes_and_a_seeded_sample_of_the_rest():
     selected_ids = {i for i, label, _ in picked if label != "OTHER"}
     assert all(i not in selected_ids for i, label, _ in picked if label == "OTHER")
     assert picked == select_ids(ann, names, ["S0", "S1"], other=quota, seed=42)
+
+
+def test_build_dataset_writes_trimmed_clips_and_skips_handless_ones(tmp_path):
+    from tests.test_features import clip
+    from training.swl_convert import build_dataset
+
+    cache = tmp_path / "clips"
+    cache.mkdir()
+    np.save(cache / "a.npy", np.concatenate([clip(3, left=False), clip(40), clip(2, left=False)]))
+    np.save(cache / "b.npy", clip(10, left=False))
+    np.save(cache / "c.npy", clip(12))
+    picked = [("a", "DOLOR", "train"), ("b", "CITA", "val"), ("c", "OTHER", "test")]
+    report = build_dataset(picked, cache, tmp_path / "out.npz")
+    with np.load(tmp_path / "out.npz") as data:
+        labels = [str(v) for v in data["labels"]]
+        assert data["clips"].shape == (2, 32, 75, 3)
+        assert len(labels) == 23 and labels[-1] == "OTHER"
+        assert [labels[i] for i in data["y"]] == ["DOLOR", "OTHER"] and list(data["split"]) == [0, 2]
+    assert report["skipped_no_hand"] == 1 and report["clips"] == 2
+
+
+def test_cached_only_keeps_the_clips_already_on_disk(tmp_path):
+    from training.swl_convert import cached_only
+
+    np.save(tmp_path / "a.npy", np.zeros(1))
+    picked = [("a", "DOLOR", "train"), ("zzz", "CITA", "val")]
+    assert cached_only(picked, tmp_path) == [("a", "DOLOR", "train")]
