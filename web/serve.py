@@ -1,19 +1,39 @@
 #!/usr/bin/env python3
-"""Serve the web/ folder for local use.
+"""Serve the web/ folder for local use, with the conversation relay.
 
-    python web/serve.py [--port 8520]
+    python web/serve.py [--port 8520] [--host 127.0.0.1]
 
-Listens on 127.0.0.1 only. Sends the MIME types the browser needs for ES modules,
-WebAssembly and video, answers HTTP range requests (so videos can seek) and
-tells the browser not to cache anything. Standard library only.
+Listens on 127.0.0.1 by default; `--host 0.0.0.0` lets a doctor join from
+another device on the same network. Sends the MIME types the browser needs for
+ES modules, WebAssembly and video, answers HTTP range requests (so videos can
+seek) and tells the browser not to cache anything.
+
+The relay (web/CONVERSATION.md) passes conversation events between the patient
+and doctor screens of a room:
+
+    GET  /relay/ping              -> {"ok": true}
+    GET  /relay/events?room=R     -> text/event-stream: the stored events, then new ones
+    POST /relay/send?room=R       -> one JSON event; answers {"ok": true, "id": ...}
+
+Events live in memory only (the last 200 per room); nothing is written to disk.
+Standard library only.
 """
 import argparse
+import json
 import os
+import queue
 import re
+import secrets
+import select
+import socket
+import threading
+import time
+from collections import deque
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parent
 HOST = "127.0.0.1"
@@ -71,17 +91,302 @@ def parse_range(header: str, size: int):
     return start, end
 
 
+# --- the relay ------------------------------------------------------------------
+
+ROOM = re.compile(r"[A-Za-z0-9_-]{1,32}")
+MAX_BODY = 16 * 1024
+KEEP = 200
+PING_SECONDS = 15.0
+TYPES = {"message", "status", "clear"}
+SENDERS = {"patient", "doctor"}
+VIA = {"sign", "text", "voice"}
+STATES = {"online", "idle", "signing", "typing", "listening"}
+_CLOSED = object()  # put in a listener's queue when the server stops
+
+
+class BadRequest(ValueError):
+    """The short reason sent back with a 400."""
+
+
+def check_room(value) -> str:
+    if not isinstance(value, str) or not ROOM.fullmatch(value):
+        raise BadRequest("bad room name: use 1 to 32 letters, digits, - or _")
+    return value
+
+
+def parse_event(body: bytes) -> dict:
+    """Decode and check one event; raises BadRequest with a short reason."""
+    try:
+        event = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        raise BadRequest("body is not valid JSON") from None
+    if not isinstance(event, dict):
+        raise BadRequest("body must be a JSON object")
+    kind = event.get("type")
+    if kind not in TYPES:
+        raise BadRequest("type must be message, status or clear")
+    if kind in ("message", "status") and event.get("from") not in SENDERS:
+        raise BadRequest("from must be patient or doctor")
+    if kind == "status" and event.get("state") not in STATES:
+        raise BadRequest("state must be online, idle, signing, typing or listening")
+    if kind == "message":
+        if "via" in event and event["via"] not in VIA:
+            raise BadRequest("via must be sign, text or voice")
+        if "text" in event and not isinstance(event["text"], str):
+            raise BadRequest("text must be a string")
+        signs = event.get("signs", [])
+        if not isinstance(signs, list) or not all(isinstance(code, str) for code in signs):
+            raise BadRequest("signs must be a list of sign codes")
+    ident = event.get("id")
+    if ident is not None and (isinstance(ident, bool) or not isinstance(ident, (str, int))):
+        raise BadRequest("id must be a string")
+    return event
+
+
+class Relay:
+    """Rooms of events, in memory. Safe to use from many handler threads."""
+
+    def __init__(self, keep: int = KEEP, ping_seconds: float = PING_SECONDS):
+        self.keep = keep
+        self.ping_seconds = ping_seconds
+        self._lock = threading.Lock()
+        self._history = {}  # room -> deque of stored events
+        self._listeners = {}  # room -> set of queue.Queue
+        self._closed = False
+
+    def publish(self, room: str, event: dict) -> dict:
+        """Stamp, store (messages and clears) and pass on one checked event."""
+        event = dict(event)
+        if event.get("id") in (None, ""):
+            event["id"] = secrets.token_hex(8)  # random: ids stay unique across restarts
+        ts = event.get("ts")
+        if isinstance(ts, bool) or not isinstance(ts, (int, float)):
+            event["ts"] = int(time.time() * 1000)
+        with self._lock:
+            if event["type"] == "clear":
+                self._history[room] = deque([event], maxlen=self.keep)
+            elif event["type"] == "message":
+                self._history.setdefault(room, deque(maxlen=self.keep)).append(event)
+            for listener in self._listeners.get(room, ()):
+                listener.put(event)
+        return event
+
+    def subscribe(self, room: str):
+        """Register a listener; returns (stored events, queue of new events).
+
+        Both happen under one lock, so no event is missed or seen twice
+        between the history and the live stream.
+        """
+        listener = queue.Queue()
+        with self._lock:
+            self._listeners.setdefault(room, set()).add(listener)
+            if self._closed:
+                listener.put(_CLOSED)
+            return list(self._history.get(room, ())), listener
+
+    def unsubscribe(self, room: str, listener) -> None:
+        with self._lock:
+            listeners = self._listeners.get(room)
+            if listeners is not None:
+                listeners.discard(listener)
+                if not listeners:
+                    del self._listeners[room]
+
+    def history(self, room: str) -> list:
+        with self._lock:
+            return list(self._history.get(room, ()))
+
+    def listener_count(self, room: str) -> int:
+        with self._lock:
+            return len(self._listeners.get(room, ()))
+
+    def close(self) -> None:
+        """Wake every open stream so its thread ends and closes the connection."""
+        with self._lock:
+            self._closed = True
+            for listeners in self._listeners.values():
+                for listener in listeners:
+                    listener.put(_CLOSED)
+
+
+# --- HTTP -----------------------------------------------------------------------
+
+
 class Handler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "SignBridgeServe/1"
+    disable_nagle_algorithm = True  # small relay answers and events go out at once, not after 40 ms
+    poll_seconds = 0.5  # how often an idle stream checks that its client is still there
 
     def guess_type(self, path):
         return MIME_TYPES.get(Path(path).suffix.lower(), "application/octet-stream")
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
-        self.send_header("Accept-Ranges", "bytes")
+        if not str(getattr(self, "path", "") or "").startswith("/relay/"):
+            self.send_header("Accept-Ranges", "bytes")
         super().end_headers()
+
+    # routing
+
+    def do_GET(self):
+        path = urlsplit(self.path).path
+        if path == "/relay/ping":
+            self._json(HTTPStatus.OK, {"ok": True})
+        elif path == "/relay/events":
+            self._events()
+        elif path == "/relay/send":
+            self._json(HTTPStatus.METHOD_NOT_ALLOWED, {"ok": False, "error": "use POST"}, allow="POST")
+        elif path.startswith("/relay/"):
+            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown relay path"})
+        else:
+            super().do_GET()
+
+    def do_POST(self):
+        path = urlsplit(self.path).path
+        if path == "/relay/send":
+            self._send()
+        elif path in ("/relay/ping", "/relay/events"):
+            self._discard_body()
+            self._json(HTTPStatus.METHOD_NOT_ALLOWED, {"ok": False, "error": "use GET"}, allow="GET")
+        elif path.startswith("/relay/"):
+            self._discard_body()
+            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown relay path"})
+        else:
+            self.send_error(HTTPStatus.NOT_IMPLEMENTED, "Unsupported method ('POST')")
+
+    # relay endpoints
+
+    def _room(self):
+        values = parse_qs(urlsplit(self.path).query).get("room", [""])
+        return check_room(values[0])
+
+    def _send(self):
+        try:
+            body = self._read_body()  # first, so a refused request leaves nothing on the connection
+            room = self._room()
+            event = parse_event(body)
+        except BadRequest as error:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(error)})
+            return
+        event = self.server.relay.publish(room, event)
+        self._json(HTTPStatus.OK, {"ok": True, "id": event["id"]})
+
+    def _events(self):
+        try:
+            room = self._room()
+        except BadRequest as error:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(error)})
+            return
+        relay = self.server.relay
+        history, listener = relay.subscribe(room)
+        self.close_connection = True  # the stream has no length: it ends when the connection closes
+        try:
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self._write_events(history)
+            last_write = time.monotonic()
+            while True:
+                try:
+                    item = listener.get(timeout=self.poll_seconds)
+                except queue.Empty:
+                    item = None
+                if item is not None:
+                    batch = [item]
+                    while True:  # several events at once go out in one write
+                        try:
+                            batch.append(listener.get_nowait())
+                        except queue.Empty:
+                            break
+                    closing = _CLOSED in batch
+                    self._write_events([event for event in batch if event is not _CLOSED])
+                    last_write = time.monotonic()
+                    if closing:
+                        break
+                elif time.monotonic() - last_write >= relay.ping_seconds:
+                    self.wfile.write(b": ping\n\n")
+                    last_write = time.monotonic()
+                elif self._client_gone():
+                    break
+        except OSError:
+            pass  # the browser closed the page or lost the network: nothing to report
+        finally:
+            relay.unsubscribe(room, listener)
+
+    def _write_events(self, events):
+        if not events:
+            return
+        chunks = []
+        for event in events:
+            data = json.dumps(event, ensure_ascii=False, separators=(",", ":"))
+            chunks.append(f"data: {data}\n\n")
+        self.wfile.write("".join(chunks).encode("utf-8"))
+
+    def _client_gone(self) -> bool:
+        """True once the client has closed its side (EventSource never sends anything)."""
+        try:
+            readable, _, _ = select.select([self.connection], [], [], 0)
+            if not readable:
+                return False
+            return self.connection.recv(1, socket.MSG_PEEK) == b""
+        except (OSError, ValueError):
+            return True
+
+    # helpers
+
+    def _content_length(self) -> int:
+        header = self.headers.get("Content-Length")
+        if header is None:
+            if self.headers.get("Transfer-Encoding"):
+                self.close_connection = True  # the body is still on the wire
+                raise BadRequest("Content-Length is required")
+            return 0
+        try:
+            length = int(header)
+        except ValueError:
+            length = -1
+        if length < 0:
+            self.close_connection = True
+            raise BadRequest("bad Content-Length")
+        return length
+
+    def _read_body(self) -> bytes:
+        length = self._content_length()
+        if length > MAX_BODY:
+            self._skip(length)
+            raise BadRequest(f"body too large: at most {MAX_BODY} bytes")
+        return self.rfile.read(length)
+
+    def _discard_body(self):
+        try:
+            self._skip(self._content_length())
+        except BadRequest:
+            pass
+
+    def _skip(self, length: int):
+        """Read and drop a body, so the answer can still reach the client."""
+        if length > 1024 * 1024:
+            self.close_connection = True
+            return
+        while length > 0:
+            chunk = self.rfile.read(min(64 * 1024, length))
+            if not chunk:
+                break
+            length -= len(chunk)
+
+    def _json(self, status, payload, allow=None):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        if allow:
+            self.send_header("Allow", allow)
+        self.end_headers()
+        self.wfile.write(body)
+
+    # static files
 
     def send_head(self):
         self._remaining = None
@@ -139,14 +444,42 @@ class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
+    def __init__(self, *args, **kwargs):
+        self.relay = Relay()
+        super().__init__(*args, **kwargs)
+
+    def server_close(self):
+        self.relay.close()
+        super().server_close()
+
+
+def make_server(host: str = HOST, port: int = DEFAULT_PORT, directory=ROOT) -> Server:
+    """A server for web/ with a fresh relay; port 0 picks a free port."""
+    return Server((host, port), partial(Handler, directory=str(directory)))
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Serve the SignBridge web app and its conversation relay.")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port to listen on (default {DEFAULT_PORT})")
+    parser.add_argument(
+        "--host",
+        default=HOST,
+        help=f"address to listen on (default {HOST}, this computer only; 0.0.0.0 for the local network)",
+    )
+    return parser.parse_args(argv)
+
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Serve the SignBridge web app on this computer only.")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port to listen on (default {DEFAULT_PORT})")
-    args = parser.parse_args()
-
-    server = Server((HOST, args.port), partial(Handler, directory=str(ROOT)))
-    print(f"Serving {ROOT} at http://{HOST}:{args.port}/  (Ctrl+C to stop)", flush=True)
+    args = parse_args()
+    server = make_server(args.host, args.port)
+    host, port = server.server_address[:2]
+    print(f"Serving {ROOT} at http://{host}:{port}/  (Ctrl+C to stop)", flush=True)
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        print(
+            "Other devices on this network can open this computer's address on that port. "
+            "The patient screen still needs http://localhost or https for the camera.",
+            flush=True,
+        )
     try:
         server.serve_forever()
     except KeyboardInterrupt:

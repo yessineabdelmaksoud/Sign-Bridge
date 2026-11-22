@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relay check</title>
+  <style>
+    body { margin: 24px; font-family: "Inter", "Noto Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #10233A; background: #FFFFFF; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    #status { font-size: 18px; font-weight: 600; }
+    #status.ok { color: #0F8A5F; }
+    #status.failed { color: #10233A; text-decoration: underline; }
+    pre { background: #EEF2F6; padding: 16px; overflow-x: auto; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Relay check</h1>
+  <p>Two connections join the same room through the relay of <code>web/serve.py</code>; one sends messages; both must receive each exactly once. A third connection joins late and must get the stored messages once.</p>
+  <p id="status">Running</p>
+  <pre id="verdict"></pre>
+  <script type="module">
+    import { joinRoom } from "../lib/channel.js";
+
+    const ROUNDS = 5;
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    async function until(predicate, timeoutMs, what) {
+      const deadline = performance.now() + timeoutMs;
+      while (performance.now() < deadline) {
+        if (predicate()) return;
+        await sleep(2);
+      }
+      throw new Error(`timed out waiting for ${what}`);
+    }
+
+    function participant(name) {
+      const received = [];
+      const states = [];
+      return {
+        name,
+        received,
+        states,
+        options: {
+          onEvent: (event) => received.push({ event, at: performance.now() }),
+          onState: (state) => states.push(state),
+        },
+        count: (text) => received.filter((r) => r.event.text === text).length,
+        at: (text) => received.find((r) => r.event.text === text)?.at,
+      };
+    }
+
+    async function check() {
+      const room = `check-${Math.random().toString(36).slice(2, 10)}`;
+      const a = participant("a");
+      const b = participant("b");
+      const late = participant("late");
+      const channels = [];
+      try {
+        const ca = await joinRoom(room, a.options);
+        const cb = await joinRoom(room, b.options);
+        channels.push(ca, cb);
+        const texts = [];
+        const delaysMs = [];
+        for (let i = 0; i < ROUNDS; i++) {
+          const text = `Message de vérification ${i + 1}`;
+          texts.push(text);
+          const started = performance.now();
+          await ca.send({ type: "message", from: "patient", via: "sign", text, signs: ["FIEBRE2"] });
+          await until(() => a.count(text) > 0 && b.count(text) > 0, 3000, `"${text}" on both connections`);
+          delaysMs.push(Math.round((Math.max(a.at(text), b.at(text)) - started) * 10) / 10);
+        }
+        const cl = await joinRoom(room, late.options);
+        channels.push(cl);
+        await until(() => texts.every((text) => late.count(text) > 0), 3000, "the history on the late connection");
+        await sleep(300); // time for a duplicate to show up
+        const once = (p) => texts.every((text) => p.count(text) === 1);
+        const sorted = [...delaysMs].sort((x, y) => x - y);
+        const verdict = {
+          ok: ca.transport === "relay" && cb.transport === "relay" && once(a) && once(b) && once(late),
+          transport: { a: ca.transport, b: cb.transport },
+          receivedOnce: { a: once(a), b: once(b) },
+          lateJoinerGotHistoryOnce: once(late),
+          delayMs: delaysMs[0],
+          medianDelayMs: sorted[Math.floor(sorted.length / 2)],
+          delaysMs,
+          states: { a: a.states, b: b.states },
+          room,
+        };
+        if (ca.transport !== "relay") verdict.error = "the relay did not answer: open this page from web/serve.py";
+        return verdict;
+      } finally {
+        channels.forEach((channel) => channel.close());
+      }
+    }
+
+    let verdict;
+    try {
+      verdict = await check();
+    } catch (error) {
+      verdict = { ok: false, error: String(error?.message ?? error) };
+    }
+    window.relayCheck = verdict;
+    const status = document.getElementById("status");
+    status.textContent = verdict.ok ? "Passed" : "Failed";
+    status.className = verdict.ok ? "ok" : "failed";
+    document.getElementById("verdict").textContent = JSON.stringify(verdict, null, 2);
+    document.title = `Relay check: ${verdict.ok ? "passed" : "failed"}`;
+  </script>
+</body>
+</html>

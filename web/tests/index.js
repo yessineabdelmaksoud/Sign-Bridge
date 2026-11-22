@@ -9,3 +9,7 @@ import "./capture.test.js";
 import "./model.test.js";
 import "./recognizer.test.js";
 import "./pace.test.js";
+import "./channel.test.js";
+import "./lexicon.test.js";
+import "./speech.test.js";
+import "./avatar.test.js";

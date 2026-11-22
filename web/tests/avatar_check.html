@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stick-figure check</title>
+<style>
+  body { margin: 0; padding: 16px; background: #EEF2F6; color: #10233A; font-family: system-ui, sans-serif; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  figure { margin: 0; background: #fff; border: 2px solid #C5D0DC; border-radius: 8px; padding: 8px; }
+  canvas { width: 100%; height: 180px; display: block; }
+  figcaption { font-weight: 700; text-align: center; }
+</style>
+</head>
+<body>
+<p>Each sign frozen at the middle of its movement. Click a figure to play it.</p>
+<div class="grid" id="grid"></div>
+<script type="module">
+import { loadSignPoses, SignAvatar, drawFigure, layout } from "../lib/avatar.js";
+const poses = await loadSignPoses();
+const signs = (await (await fetch("../data/signs.json")).json()).signs;
+const grid = document.getElementById("grid");
+for (const sign of signs) {
+  const fig = document.createElement("figure");
+  const canvas = document.createElement("canvas");
+  const cap = document.createElement("figcaption");
+  cap.textContent = sign.fr;
+  fig.append(canvas, cap);
+  grid.append(fig);
+  const avatar = new SignAvatar(canvas, poses);
+  const data = poses.signs.get(sign.code);
+  const mid = data.frames[Math.floor(data.frames.length / 2)];
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const ratio = devicePixelRatio || 1;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  drawFigure(ctx, mid, layout(canvas.clientWidth, canvas.clientHeight));
+  fig.addEventListener("click", () => avatar.play([sign.code]));
+}
+window.avatarCheck = { signs: signs.length, ok: true };
+</script>
+</body>
+</html>
