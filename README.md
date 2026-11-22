@@ -10,6 +10,8 @@ Everything runs in the browser on one computer: the camera image is turned into 
 
 ![Patient and doctor screens side by side](docs/screens.jpg)
 
+A 10-second demo on two phones: [docs/demo-mobile.mp4](docs/demo-mobile.mp4).
+
 ## Start it
 
 Python 3 only (standard library); no install for the app itself.
