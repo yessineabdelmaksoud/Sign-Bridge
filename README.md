@@ -4,7 +4,7 @@ SignBridge helps a deaf patient and a hearing doctor or pharmacist get through a
 
 The consultation page works with the network switched off, and no camera image is stored or sent anywhere.
 
-![The consultation page](docs/consultation.png)
+![The consultation page](docs/consultation.jpg)
 
 ## What the consultation does
 
