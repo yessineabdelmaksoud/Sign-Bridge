@@ -1,0 +1,217 @@
+{
+  "other": "OTHER",
+  "groups": [
+    {
+      "id": "reason",
+      "icon": "🏥"
+    },
+    {
+      "id": "symptom",
+      "icon": "🩺"
+    },
+    {
+      "id": "conditions",
+      "icon": "📋"
+    }
+  ],
+  "signs": [
+    {
+      "code": "ENFERMO",
+      "group": "reason",
+      "icon": "🤒",
+      "fr": "Malade",
+      "ar": "مريض",
+      "clip": "clips/ENFERMO.mp4",
+      "weak": false
+    },
+    {
+      "code": "CITA",
+      "group": "reason",
+      "icon": "📅",
+      "fr": "Rendez-vous",
+      "ar": "موعد",
+      "clip": "clips/CITA.mp4",
+      "weak": false
+    },
+    {
+      "code": "FARMACIA",
+      "group": "reason",
+      "icon": "💊",
+      "fr": "Médicament",
+      "ar": "دواء",
+      "clip": "clips/FARMACIA.mp4",
+      "weak": false
+    },
+    {
+      "code": "URGENTE",
+      "group": "reason",
+      "icon": "🚨",
+      "fr": "Urgent",
+      "ar": "حالة مستعجلة",
+      "clip": "clips/URGENTE.mp4",
+      "weak": false
+    },
+    {
+      "code": "DOLOR",
+      "group": "symptom",
+      "icon": "😣",
+      "fr": "Douleur",
+      "ar": "وجيعة",
+      "clip": "clips/DOLOR.mp4",
+      "weak": false
+    },
+    {
+      "code": "DOLOR-DE-CABEZA",
+      "group": "symptom",
+      "icon": "🤕",
+      "fr": "Mal de tête",
+      "ar": "وجيعة راس",
+      "clip": "clips/DOLOR-DE-CABEZA.mp4",
+      "weak": false
+    },
+    {
+      "code": "FIEBRE2",
+      "group": "symptom",
+      "icon": "🌡️",
+      "fr": "Fièvre",
+      "ar": "سخانة",
+      "clip": "clips/FIEBRE2.mp4",
+      "weak": false
+    },
+    {
+      "code": "TOSER",
+      "group": "symptom",
+      "icon": "😷",
+      "fr": "Toux",
+      "ar": "كحة",
+      "clip": "clips/TOSER.mp4",
+      "weak": false
+    },
+    {
+      "code": "MAREO",
+      "group": "symptom",
+      "icon": "😵",
+      "fr": "Vertige",
+      "ar": "دوخة",
+      "clip": "clips/MAREO.mp4",
+      "weak": false
+    },
+    {
+      "code": "VOMITAR",
+      "group": "symptom",
+      "icon": "🤮",
+      "fr": "Vomissements",
+      "ar": "تقيؤ",
+      "clip": "clips/VOMITAR.mp4",
+      "weak": false
+    },
+    {
+      "code": "DIARREA",
+      "group": "symptom",
+      "icon": "🚽",
+      "fr": "Diarrhée",
+      "ar": "إسهال",
+      "clip": "clips/DIARREA.mp4",
+      "weak": false
+    },
+    {
+      "code": "RESPIRAR",
+      "group": "symptom",
+      "icon": "🫁",
+      "fr": "Essoufflement",
+      "ar": "ضيق نفس",
+      "clip": "clips/RESPIRAR.mp4",
+      "weak": false
+    },
+    {
+      "code": "CANSADO2",
+      "group": "symptom",
+      "icon": "😴",
+      "fr": "Fatigue",
+      "ar": "تعب",
+      "clip": "clips/CANSADO2.mp4",
+      "weak": false
+    },
+    {
+      "code": "HERIDA",
+      "group": "symptom",
+      "icon": "🩹",
+      "fr": "Blessure",
+      "ar": "جرح",
+      "clip": "clips/HERIDA.mp4",
+      "weak": false
+    },
+    {
+      "code": "ALERGIA2",
+      "group": "symptom",
+      "icon": "🤧",
+      "fr": "Allergie",
+      "ar": "حساسية",
+      "clip": "clips/ALERGIA2.mp4",
+      "weak": false
+    },
+    {
+      "code": "GRIPE",
+      "group": "symptom",
+      "icon": "🦠",
+      "fr": "Grippe",
+      "ar": "نزلة برد",
+      "clip": "clips/GRIPE.mp4",
+      "weak": false
+    },
+    {
+      "code": "INSOMNIO",
+      "group": "symptom",
+      "icon": "🌙",
+      "fr": "Insomnie",
+      "ar": "قلة نوم",
+      "clip": "clips/INSOMNIO.mp4",
+      "weak": false
+    },
+    {
+      "code": "ANSIEDAD",
+      "group": "symptom",
+      "icon": "😰",
+      "fr": "Anxiété",
+      "ar": "قلق",
+      "clip": "clips/ANSIEDAD.mp4",
+      "weak": false
+    },
+    {
+      "code": "DIABETES",
+      "group": "conditions",
+      "icon": "🩸",
+      "fr": "Diabète",
+      "ar": "سكري",
+      "clip": "clips/DIABETES.mp4",
+      "weak": false
+    },
+    {
+      "code": "ASMA",
+      "group": "conditions",
+      "icon": "🌬️",
+      "fr": "Asthme",
+      "ar": "ربو",
+      "clip": "clips/ASMA.mp4",
+      "weak": false
+    },
+    {
+      "code": "CORAZON",
+      "group": "conditions",
+      "icon": "❤️",
+      "fr": "Maladie du cœur",
+      "ar": "مرض القلب",
+      "clip": "clips/CORAZON.mp4",
+      "weak": true
+    },
+    {
+      "code": "EMBARAZO",
+      "group": "conditions",
+      "icon": "🤰",
+      "fr": "Grossesse",
+      "ar": "حمل",
+      "clip": "clips/EMBARAZO.mp4",
+      "weak": false
+    }
+  ]
+}

@@ -3,7 +3,7 @@ __pycache__/
 .venv/
 .env
 Demo/model/
-data/
+/data/
 .pytest_cache/
 .claude/
 .superpowers/

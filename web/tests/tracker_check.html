@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracker check: starting</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 24px; color: #1b1b1b; background: #fafafa; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; overflow: auto; }
+  video { max-width: 240px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h1>Tracker check</h1>
+<p>Runs <code>lib/tracker.js</code> over one reference clip, frame by frame.
+Options: <code>?clip=DOLOR</code>, <code>&amp;delegate=CPU</code> or <code>GPU</code>, <code>&amp;fps=20</code>, <code>&amp;show=1</code>.</p>
+<video id="clip" muted playsinline preload="auto" hidden></video>
+<pre id="out">starting…</pre>
+
+<script type="module">
+const params = new URLSearchParams(location.search);
+const clip = params.get("clip") || "DOLOR";
+const clipFps = Number(params.get("fps")) || 20; // SWL-LSE reference videos are 20 frames per second
+const forced = (params.get("delegate") || "").toUpperCase();
+
+const summary = {
+  status: "starting",
+  clip,
+  clipUrl: new URL(`../clips/${encodeURIComponent(clip)}.mp4`, location.href).pathname,
+  delegate: null,           // delegate actually used: "GPU" or "CPU"
+  frames: 0,                // frames processed
+  framesExpected: null,
+  framesWithPose: 0,
+  framesWithLeft: 0,
+  framesWithRight: 0,
+  framesWithAnyHand: 0,
+  fps: null,                // frames / time spent inside tracker.detect
+  msPerFrameMedian: null,
+  createMs: null,           // time to load wasm + model and warm up
+  wallSeconds: null,        // whole run, seeking included
+  canonicalFramesOk: null,  // every frame is Float32Array(225) and agrees with pose/left/right
+  // Mean distance between each hand's wrist and the pose wrist of the same side
+  // (pose point 15 = left wrist, 16 = right wrist), and to the wrist of the other
+  // side. "same" much smaller than "other" means left/right are labelled consistently.
+  leftWristToPose: { same: null, other: null },
+  rightWristToPose: { same: null, other: null },
+  video: null,
+  userAgent: navigator.userAgent,
+  error: null,
+};
+window.trackerCheck = summary;
+
+const out = document.getElementById("out");
+function publish() {
+  out.textContent = JSON.stringify(summary, null, 2);
+  document.title = `Tracker check: ${summary.status}`;
+}
+publish();
+
+const round = (value, digits = 2) => (Number.isFinite(value) ? Number(value.toFixed(digits)) : null);
+const mean = (values) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : NaN);
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function loadVideo(video, url) {
+  return new Promise((resolve, reject) => {
+    video.addEventListener("loadeddata", () => resolve(), { once: true });
+    video.addEventListener("error", () => reject(new Error(
+      `video failed to load: ${url} (${video.error ? video.error.message || "code " + video.error.code : "unknown"})`)), { once: true });
+    video.src = url;
+    video.load();
+  });
+}
+
+function seek(video, seconds) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`seek to ${seconds.toFixed(3)} s timed out`)), 10000);
+    video.addEventListener("seeked", () => { clearTimeout(timer); resolve(); }, { once: true });
+    video.currentTime = seconds;
+  });
+}
+
+function blockFinite(frame, start, count) {
+  for (let i = start * 3; i < (start + count) * 3; i++) if (!Number.isFinite(frame[i])) return false;
+  return true;
+}
+function blockNaN(frame, start, count) {
+  for (let i = start * 3; i < (start + count) * 3; i++) if (!Number.isNaN(frame[i])) return false;
+  return true;
+}
+// A canonical frame must mirror what the tracker reported: 33 pose points, then left, then right.
+function canonicalOk(frame, { pose, left, right }) {
+  if (!(frame instanceof Float32Array) || frame.length !== 225) return false;
+  const check = (points, start, count) => {
+    if (!points) return blockNaN(frame, start, count);
+    return blockFinite(frame, start, count)
+      && Math.abs(frame[start * 3] - points[0].x) < 1e-6
+      && Math.abs(frame[start * 3 + 1] - points[0].y) < 1e-6;
+  };
+  return check(pose, 0, 33) && check(left, 33, 21) && check(right, 54, 21);
+}
+
+async function run() {
+  const started = performance.now();
+  const video = document.getElementById("clip");
+  if (params.get("show")) video.hidden = false;
+
+  summary.status = "loading tracker";
+  publish();
+  const { Tracker } = await import("../lib/tracker.js");
+  const t0 = performance.now();
+  const tracker = await Tracker.create(forced === "GPU" || forced === "CPU" ? { delegate: forced } : {});
+  summary.createMs = round(performance.now() - t0, 0);
+  summary.delegate = tracker.delegate;
+
+  try {
+    summary.status = "loading clip";
+    publish();
+    await loadVideo(video, `../clips/${encodeURIComponent(clip)}.mp4`);
+    summary.video = { width: video.videoWidth, height: video.videoHeight, seconds: round(video.duration, 3) };
+    const total = Math.max(1, Math.round(video.duration * clipFps));
+    summary.framesExpected = total;
+    summary.status = "running";
+
+    const times = [];
+    const leftSame = [], leftOther = [], rightSame = [], rightOther = [];
+    let allCanonical = true;
+    for (let i = 0; i < total; i++) {
+      // Aim at the middle of frame i so rounding never lands on a neighbour.
+      await seek(video, Math.min((i + 0.5) / clipFps, Math.max(0, video.duration - 0.001)));
+      const before = performance.now();
+      const result = tracker.detect(video, (i * 1000) / clipFps);
+      times.push(performance.now() - before);
+
+      const { pose, left, right } = result;
+      summary.frames += 1;
+      if (pose) summary.framesWithPose += 1;
+      if (left) summary.framesWithLeft += 1;
+      if (right) summary.framesWithRight += 1;
+      if (left || right) summary.framesWithAnyHand += 1;
+      if (!canonicalOk(result.frame, result)) allCanonical = false;
+      if (pose && left) { leftSame.push(distance(left[0], pose[15])); leftOther.push(distance(left[0], pose[16])); }
+      if (pose && right) { rightSame.push(distance(right[0], pose[16])); rightOther.push(distance(right[0], pose[15])); }
+      if (i % 5 === 4) publish();
+    }
+
+    const spent = times.reduce((a, b) => a + b, 0);
+    const sorted = [...times].sort((a, b) => a - b);
+    summary.fps = round((times.length * 1000) / spent, 1);
+    summary.msPerFrameMedian = round(sorted[Math.floor(sorted.length / 2)], 1);
+    summary.canonicalFramesOk = allCanonical;
+    summary.leftWristToPose = { same: round(mean(leftSame), 3), other: round(mean(leftOther), 3) };
+    summary.rightWristToPose = { same: round(mean(rightSame), 3), other: round(mean(rightOther), 3) };
+    summary.status = "done";
+  } finally {
+    tracker.close();
+    summary.wallSeconds = round((performance.now() - started) / 1000, 2);
+  }
+}
+
+run().catch((error) => {
+  summary.status = "error";
+  summary.error = String(error && error.stack ? `${error.message}\n${error.stack}` : error);
+}).finally(publish);
+</script>
+</body>
+</html>

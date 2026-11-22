@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Core check: starting</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 24px; color: #1b1b1b; background: #fafafa; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; overflow: auto; }
+</style>
+</head>
+<body>
+<h1>Core check</h1>
+<p>Loads the model with <code>Recognizer.load</code>, as the app does, and compares what this browser
+computes with the Python fixtures: the 56 raw clips of the test split. The Node tests
+(<code>node --test web/tests/</code>) check the same and more; this page is for the browser itself.</p>
+<pre id="out">starting…</pre>
+
+<script type="module">
+import { SignCapture } from "../lib/capture.js";
+import { clipFeatures } from "../lib/features.js";
+import { emptyFrame } from "../lib/landmarks.js";
+import { Recognizer } from "../lib/recognizer.js";
+
+const summary = {
+  status: "starting",
+  clips: 0,
+  labels: null,                  // labels the recognizer lists
+  featureClips: 0,               // clips whose features are compared value by value
+  featureValuesDifferent: 0,     // must be 0
+  predictions: 0,
+  labelsDifferent: 0,            // must be 0
+  top3Different: 0,              // must be 0
+  largestConfidenceDifference: 0,
+  replaysDifferent: 0,           // clips that SignCapture cuts or names differently; must be 0
+  noHand: null,                  // must be { label: null, confidence: 0, top3: [] }
+  loadMs: null,
+  msPerPrediction: null,
+  error: null,
+};
+
+function show() {
+  document.title = `Core check: ${summary.status}`;
+  document.getElementById("out").textContent = JSON.stringify(summary, null, 2);
+}
+
+const fetchOk = async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`could not load ${url}: HTTP ${response.status}`);
+  return response;
+};
+
+try {
+  let started = performance.now();
+  const recognizer = await Recognizer.load("../models/health_signs.json");
+  summary.loadMs = Math.round(performance.now() - started);
+  summary.labels = recognizer.labels.length;
+
+  const index = await (await fetchOk("fixtures/parity.json")).json();
+  const all = new Float32Array(await (await fetchOk("fixtures/parity.bin")).arrayBuffer());
+  const names = (prediction) => JSON.stringify(prediction.top3.map(([label]) => label));
+
+  let spent = 0;
+  for (const item of index.clips) {
+    const clip = Array.from({ length: item.frames }, (_, i) =>
+      all.subarray(item.offset + i * 225, item.offset + (i + 1) * 225));
+    summary.clips++;
+
+    if (item.features_offset !== null) {
+      const features = clipFeatures(clip);
+      summary.featureClips++;
+      features.forEach((value, i) => {
+        if (value !== all[item.features_offset + i]) summary.featureValuesDifferent++;
+      });
+    }
+
+    for (const [name, expected] of Object.entries(item.predictions)) {
+      started = performance.now();
+      const actual = name === "all" ? recognizer.predict(clip) : recognizer.predict(clip, index.sign_sets[name]);
+      spent += performance.now() - started;
+      summary.predictions++;
+      if (actual.label !== expected.label) summary.labelsDifferent++;
+      if (names(actual) !== names({ top3: expected.top3 })) summary.top3Different++;
+      summary.largestConfidenceDifference = Math.max(
+        summary.largestConfidenceDifference, Math.abs(actual.confidence - expected.confidence));
+    }
+
+    const capture = new SignCapture();
+    let captured = null;
+    [...clip, ...Array.from({ length: 12 }, emptyFrame)].forEach((frame, i) => {
+      captured = capture.push(frame, i / 30) ?? captured;
+    });
+    const replayed = captured && { frames: captured.length, label: recognizer.predict(captured).label };
+    const expected = item.replay && { frames: item.replay.frames, label: item.replay.prediction.label };
+    if (JSON.stringify(replayed) !== JSON.stringify(expected)) summary.replaysDifferent++;
+  }
+  summary.msPerPrediction = Math.round((spent / summary.predictions) * 100) / 100;
+  summary.noHand = recognizer.predict(Array.from({ length: 20 }, emptyFrame));
+
+  const same = summary.clips === 56 && summary.featureClips === 12 && summary.featureValuesDifferent === 0
+    && summary.labelsDifferent === 0 && summary.top3Different === 0 && summary.replaysDifferent === 0
+    && summary.largestConfidenceDifference < 1e-4
+    && JSON.stringify(summary.noHand) === JSON.stringify({ label: null, confidence: 0, top3: [] });
+  summary.status = same ? "pass" : "fail";
+} catch (error) {
+  summary.status = "error";
+  summary.error = String(error?.stack || error);
+}
+show();
+</script>
+</body>
+</html>

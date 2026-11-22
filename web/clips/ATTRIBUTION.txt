@@ -1,0 +1,44 @@
+Reference sign videos in this folder
+====================================
+
+The 22 files <CODE>.mp4 are reference videos from the SWL-LSE dataset
+(SignaMed Word-Level LSE), Universidade de Vigo.
+
+Licence: Creative Commons Attribution 4.0 International (CC BY 4.0)
+         https://creativecommons.org/licenses/by/4.0/
+Source:  Zenodo record 13691887, file VIDEOS_REF.zip
+         https://zenodo.org/records/13691887
+Paper:   "SWL-LSE: A Dataset of Spanish Sign Language Health Signs with an
+         ISLR Baseline Method", Technologies 2024, 12(10), 205.
+         DOI 10.3390/technologies12100205
+
+Changes: 22 of the 300 reference videos were selected and renamed from their
+record id to the sign label given in the dataset's annotations. The video
+data itself is unchanged (H.264 in MP4, 480x480, 20 frames per second, no
+audio).
+
+The signs are Spanish Sign Language (LSE), not Tunisian Sign Language.
+
+File                  Original file in VIDEOS_REF.zip
+ALERGIA2.mp4          recOaNGFOPsSmfisQ.mp4
+ANSIEDAD.mp4          rec9lPv3zwTneAuFO.mp4
+ASMA.mp4              recHctFG0ILupOK1j.mp4
+CANSADO2.mp4          recHVjGS4oIlrSGNP.mp4
+CITA.mp4              recD9iUDbvsFi5kOT.mp4
+CORAZON.mp4           recVpKinTL262rXcq.mp4
+DIABETES.mp4          rec53VFqzz57VKa0v.mp4
+DIARREA.mp4           reclQqQA5YZHNYXqH.mp4
+DOLOR-DE-CABEZA.mp4   recYKGYXsKNCvPLCD.mp4
+DOLOR.mp4             reck9BdXzyIJjiWws.mp4
+EMBARAZO.mp4          recKyWSqOPJOnH9qT.mp4
+ENFERMO.mp4           recia013WUZbi4VZI.mp4
+FARMACIA.mp4          reczY9SXqnErZxsPb.mp4
+FIEBRE2.mp4           rec2nLNI2Ky529dau.mp4
+GRIPE.mp4             recs5w8Hqz0lVye1f.mp4
+HERIDA.mp4            recILdlL9Yhg4f559.mp4
+INSOMNIO.mp4          recj3UDQ2sDO9Wmjn.mp4
+MAREO.mp4             recsuY6WJt438Enev.mp4
+RESPIRAR.mp4          recqatwQVbYRAy7WD.mp4
+TOSER.mp4             recejG894uBDSCWHI.mp4
+URGENTE.mp4           recRmS1ZNd0exYhgL.mp4
+VOMITAR.mp4           reczZ2eporKB8Avas.mp4

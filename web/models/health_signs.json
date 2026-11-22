@@ -1,0 +1,178 @@
+{
+  "labels": [
+    "ENFERMO",
+    "CITA",
+    "FARMACIA",
+    "URGENTE",
+    "DOLOR",
+    "DOLOR-DE-CABEZA",
+    "FIEBRE2",
+    "TOSER",
+    "MAREO",
+    "VOMITAR",
+    "DIARREA",
+    "RESPIRAR",
+    "CANSADO2",
+    "HERIDA",
+    "ALERGIA2",
+    "GRIPE",
+    "INSOMNIO",
+    "ANSIEDAD",
+    "DIABETES",
+    "ASMA",
+    "CORAZON",
+    "EMBARAZO",
+    "OTHER"
+  ],
+  "threshold": 0.4,
+  "weak_labels": [
+    "CORAZON"
+  ],
+  "frames": 32,
+  "features": 184,
+  "model": "numpy-mlp",
+  "hidden": [
+    256,
+    128
+  ],
+  "layers": 3,
+  "weights": "health_signs.bin",
+  "dtype": "float32",
+  "byte_order": "little",
+  "byte_length": 6220892,
+  "sha256": "694a59492eaee05b0d38395c3939be77ac87f6b04ae0f095132133e2dc9f554e",
+  "arrays": [
+    {
+      "name": "mean",
+      "shape": [
+        5888
+      ],
+      "byte_offset": 0,
+      "length": 5888
+    },
+    {
+      "name": "std",
+      "shape": [
+        5888
+      ],
+      "byte_offset": 23552,
+      "length": 5888
+    },
+    {
+      "name": "w0",
+      "shape": [
+        5888,
+        256
+      ],
+      "byte_offset": 47104,
+      "length": 1507328
+    },
+    {
+      "name": "b0",
+      "shape": [
+        256
+      ],
+      "byte_offset": 6076416,
+      "length": 256
+    },
+    {
+      "name": "w1",
+      "shape": [
+        256,
+        128
+      ],
+      "byte_offset": 6077440,
+      "length": 32768
+    },
+    {
+      "name": "b1",
+      "shape": [
+        128
+      ],
+      "byte_offset": 6208512,
+      "length": 128
+    },
+    {
+      "name": "w2",
+      "shape": [
+        128,
+        23
+      ],
+      "byte_offset": 6209024,
+      "length": 2944
+    },
+    {
+      "name": "b2",
+      "shape": [
+        23
+      ],
+      "byte_offset": 6220800,
+      "length": 23
+    }
+  ],
+  "metrics": {
+    "official_test": {
+      "top1": 0.75,
+      "top3": 0.8929,
+      "n": 56,
+      "narrowed": {
+        "reason": {
+          "top1": 0.875,
+          "n": 8
+        },
+        "symptom": {
+          "top1": 0.8571,
+          "n": 28
+        },
+        "conditions": {
+          "top1": 0.875,
+          "n": 8
+        }
+      }
+    },
+    "official_validation": {
+      "top1": 0.8817,
+      "top3": 0.9462,
+      "n": 93,
+      "narrowed": {
+        "reason": {
+          "top1": 1.0,
+          "n": 14
+        },
+        "symptom": {
+          "top1": 0.9811,
+          "n": 53
+        },
+        "conditions": {
+          "top1": 0.8571,
+          "n": 14
+        }
+      }
+    },
+    "cv_folds": 5,
+    "cv_top1": {
+      "mean": 0.8069,
+      "std": 0.0131
+    },
+    "cv_top3": {
+      "mean": 0.9328,
+      "std": 0.0147
+    },
+    "cv_narrowed_top1": {
+      "reason": {
+        "mean": 0.9243,
+        "std": 0.0278
+      },
+      "symptom": {
+        "mean": 0.9064,
+        "std": 0.0233
+      },
+      "conditions": {
+        "mean": 0.9103,
+        "std": 0.034
+      }
+    },
+    "split_signer_independent": "unknown",
+    "note": "Scores are on SWL-LSE (Spanish Sign Language). 'narrowed' means choosing only among the answers one question allows. The official test split has two clips per sign."
+  }
+}
