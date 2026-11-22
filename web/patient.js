@@ -827,6 +827,10 @@ async function playClip(code) {
   video.defaultPlaybackRate = state.clipRate ?? CLIP_RATE_START;   // see paceClip
   video.playbackRate = video.defaultPlaybackRate;
   showSource("clip");
+  // On a phone the demonstration control is below the fold: show the stage it plays on.
+  if (window.matchMedia?.("(max-width: 599px)").matches) {
+    dom.stage.closest("main")?.scrollTo({ top: 0, behavior: "smooth" });   // only the patient area, not the page
+  }
   try {
     await video.play();
   } catch (error) {

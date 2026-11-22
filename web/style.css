@@ -868,3 +868,50 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .alts--choices .alt { border-color: var(--amber); }
 .bar__note.is-warning { color: var(--ink); background: var(--amber); padding: 2px 8px; border-radius: 6px; font-weight: 700; }
+
+/* ------------------------------------------------------------------ */
+/* Phones                                                              */
+/* ------------------------------------------------------------------ */
+
+.label-short { display: none; }
+
+@media (max-width: 599px) {
+  /* Patient: camera, then the doctor's reply (only when there is one), then the sentence. */
+  .screen--patient { font-size: 16px; }
+  .patient {
+    gap: 12px;
+    padding: 12px;
+    grid-template-rows: minmax(220px, 34dvh) auto auto auto auto;
+    grid-template-areas: "stage" "reply" "compose" "history" "demo";
+  }
+  /* The page scrolls on a phone: panels keep their natural height instead of being squeezed. */
+  .reply, .compose, .history, .demo { min-height: auto; }
+  .reply { padding: 14px 16px; gap: 8px; }
+  .reply[data-state="empty"] { display: none; }
+  .reply__signs { height: 168px; flex: 0 0 auto; }
+  .reply[data-state="signs"] .reply__text { font-size: 20px; }
+  .reply__text { font-size: 22px; }
+  .compose { padding: 14px 16px; }
+  .compose .btn--send, .compose .btn--erase { min-height: 64px; font-size: 20px; }
+  /* Effacer and Envoyer stay at the bottom of the screen while the sentence card is in view. */
+  .compose .actions { position: sticky; bottom: 0; z-index: 2; background: var(--white);
+    margin: 0 -16px -14px; padding: 10px 16px 14px; border-top: 1px solid var(--line); }
+
+  /* Doctor: a compact header, the field and Envoyer side by side, more room for the conversation. */
+  .label-long { display: none; }
+  .label-short { display: inline; }
+  .screen--doctor .bar { padding: 10px 12px; gap: 6px 10px; grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "brand meta" "actions actions"; }
+  .screen--doctor .bar__brand { align-self: center; }
+  .screen--doctor .bar__meta { align-self: center; justify-content: flex-end; text-align: right; }
+  .screen--doctor .bar__actions { grid-template-columns: 1fr 1fr; justify-content: stretch; padding-top: 0; }
+  .screen--doctor .bar__actions .btn { white-space: nowrap; padding: 6px 10px; font-size: 14px; }
+  .bar__note { display: none; }
+  .bar__note.is-warning { display: block; text-align: left; }
+  .doctor { gap: 10px; padding: 10px; grid-template-rows: minmax(0, 1fr) auto auto; }
+  .composer { padding: 12px; gap: 8px; }
+  .composer__row { flex-direction: row; }
+  .composer__field { min-height: 52px; font-size: 16px; padding: 10px 12px; }
+  .composer__row .btn { min-width: 96px; font-size: 16px; }
+  .composer__note { font-size: 12px; }
+}

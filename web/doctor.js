@@ -291,9 +291,13 @@ function renderVoice() {
   const available = canSpeak();
   dom.voice.disabled = !available;
   dom.voice.setAttribute("aria-pressed", String(available && state.voiceOn));
-  dom.voice.textContent = !available
-    ? "Lecture à voix haute : indisponible"
-    : `Lecture à voix haute : ${state.voiceOn ? "activée" : "désactivée"}`;
+  const stateText = !available ? "indisponible" : state.voiceOn ? "activée" : "désactivée";
+  // The long label on a wide screen, "Voix" on a phone (style.css picks one).
+  dom.voice.replaceChildren(
+    Object.assign(document.createElement("span"), { className: "label-long", textContent: "Lecture à voix haute" }),
+    Object.assign(document.createElement("span"), { className: "label-short", textContent: "Voix" }),
+    document.createTextNode(` : ${stateText}`));
+  dom.voice.setAttribute("aria-label", `Lecture à voix haute : ${stateText}`);
 }
 
 // Chrome lets a page speak only after someone has clicked on it. If a patient message
